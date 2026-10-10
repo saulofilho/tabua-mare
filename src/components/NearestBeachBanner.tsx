@@ -7,47 +7,61 @@ import {
   Navigation,
   Search,
   Waves,
-  Wind,
-  Check,
+  RotateCcw,
+  CheckCircle,
 } from 'lucide-react';
 
 interface NearestBeachBannerProps {
-  nearestBeach: BeachLocation;
-  distanceKm: number;
-  distanceNM: number;
+  activeBeach: BeachLocation; // Praia atualmente em destaque (selecionada ou padrão)
+  nearestBeach: BeachLocation; // Praia mais próxima calculada pelo GPS
+  isNearestBeach: boolean; // Se a praia em destaque é a mais próxima do usuário
+  distanceToActiveKm: number;
+  distanceToNearestKm: number;
   realMarineConditions: RealMarineConditions | null;
   tideHeight: number;
   tendency: 'enchente' | 'vazante' | 'estofo';
   hasRealGPS: boolean;
   onRequestGPS: () => void;
-  onSelectBeach: (beach: BeachLocation) => void;
+  onResetToNearest: () => void;
   onOpenSearch: () => void;
-  isActiveStationBeach: boolean;
 }
 
 export const NearestBeachBanner: React.FC<NearestBeachBannerProps> = ({
+  activeBeach,
   nearestBeach,
-  distanceKm,
-  distanceNM,
+  isNearestBeach,
+  distanceToActiveKm,
+  distanceToNearestKm,
   realMarineConditions,
   tideHeight,
   tendency,
   hasRealGPS,
   onRequestGPS,
-  onSelectBeach,
+  onResetToNearest,
   onOpenSearch,
-  isActiveStationBeach,
 }) => {
+  // Visual calculation for mini water column (0m to 3.0m)
+  const maxVisualRange = 3.0;
+  const clampedHeight = Math.max(0, Math.min(maxVisualRange, tideHeight));
+  const waterPercent = Math.round((clampedHeight / maxVisualRange) * 100);
+
   return (
-    <div className="border-b-2 border-black bg-white p-4 font-mono">
+    <div className="border-b-2 border-black bg-white p-4 font-mono shadow-xs">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        {/* Left Section: Nearest Beach Identification */}
+        {/* Left Section: Active Beach in Highlight */}
         <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="bg-black text-white px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-              <MapPin className="w-3 h-3 text-[#d42020]" />
-              PRAIA MAIS PRÓXIMA
-            </span>
+            {isNearestBeach ? (
+              <span className="bg-black text-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-[1px_1px_0px_#000]">
+                <MapPin className="w-3.5 h-3.5 text-[#d42020]" />
+                📍 PRAIA MAIS PRÓXIMA DE VOCÊ
+              </span>
+            ) : (
+              <span className="bg-[#111111] text-[#f8f7f4] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                <CheckCircle className="w-3.5 h-3.5 text-white" />
+                PRAIA SELECIONADA EM DESTAQUE
+              </span>
+            )}
 
             {hasRealGPS ? (
               <span className="text-[10px] font-bold text-[#008800] border border-[#008800] px-1.5 py-0.5 uppercase bg-[#f0fff0]">
@@ -57,61 +71,106 @@ export const NearestBeachBanner: React.FC<NearestBeachBannerProps> = ({
               <button
                 onClick={onRequestGPS}
                 className="text-[10px] font-bold text-black border border-black px-1.5 py-0.5 uppercase bg-[#eeebe6] hover:bg-black hover:text-white transition-colors cursor-pointer flex items-center gap-1"
-                title="Obter coordenadas GPS reais do dispositivo"
+                title="Calibrar posição pelo GPS do dispositivo"
               >
                 <Navigation className="w-2.5 h-2.5" />
-                OBTER MEU GPS
+                CALIBRAR MEU GPS
               </button>
             )}
 
-            <span className="text-xs font-bold text-[#888888] hidden sm:inline">
-              DISTÂNCIA: <strong className="text-black">{distanceKm} KM</strong> ({distanceNM} MN)
+            <span className="text-xs font-bold text-[#888888]">
+              DISTÂNCIA:{' '}
+              <strong className="text-black tabular-nums">{distanceToActiveKm} KM</strong>
             </span>
           </div>
 
-          <div className="flex items-baseline gap-2">
+          {/* Beach Title */}
+          <div className="flex items-baseline gap-2 pt-0.5">
             <h2 className="font-display text-2xl sm:text-3xl font-bold uppercase tracking-tight text-black">
-              {nearestBeach.name}
+              {activeBeach.name}
             </h2>
             <span className="text-xs font-bold text-[#666] uppercase">
-              // {nearestBeach.city} - {nearestBeach.state}
+              // {activeBeach.city} - {activeBeach.state}
             </span>
           </div>
 
           <p className="text-[11px] text-[#666] max-w-2xl">
-            {nearestBeach.description} · Coordenadas:{' '}
+            {activeBeach.description} · Coordenadas:{' '}
             <span className="text-black font-bold">
-              {nearestBeach.lat.toFixed(4)}°, {nearestBeach.lng.toFixed(4)}°
+              {activeBeach.lat.toFixed(4)}°, {activeBeach.lng.toFixed(4)}°
             </span>
           </p>
+
+          {/* If another beach is selected, display notice pointing to the nearest beach */}
+          {!isNearestBeach && (
+            <div className="pt-1 flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-[#888888] font-bold text-[11px]">
+                Sua praia mais próxima por GPS é{' '}
+                <strong className="text-black">{nearestBeach.name}</strong> ({distanceToNearestKm} km):
+              </span>
+              <button
+                onClick={onResetToNearest}
+                className="text-[10px] font-bold border border-black px-2 py-0.5 uppercase bg-[#eeebe6] hover:bg-black hover:text-white transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <RotateCcw className="w-3 h-3 text-[#d42020]" />
+                VOLTAR PARA A PRAIA MAIS PRÓXIMA
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Middle Section: Real Ocean Conditions (Open-Meteo Marine API) */}
+        {/* Middle Section: Visual Tide Meter & Real Ocean Conditions */}
         <div className="flex flex-wrap items-center gap-3 py-2 px-3 border-2 border-black bg-[#f8f7f4] shadow-[2px_2px_0px_#000]">
-          {/* Real Tide at this beach */}
-          <div className="pr-3 border-r-2 border-black/20">
-            <span className="block text-[10px] font-bold uppercase text-[#888888]">
-              MARÉ NESTA PRAIA
-            </span>
-            <div className="flex items-baseline gap-1">
-              <span className="font-display text-2xl font-bold text-black tabular-nums">
-                {tideHeight.toFixed(2)}M
-              </span>
-              <span
-                className={`text-[10px] font-bold uppercase ${
-                  tendency === 'enchente'
-                    ? 'text-black'
-                    : tendency === 'vazante'
-                    ? 'text-[#d42020]'
-                    : 'text-[#888888]'
-                }`}
+          {/* REPRESENTAÇÃO VISUAL DA MARÉ (Mini Coluna de Água) */}
+          <div className="pr-3 border-r-2 border-black/20 flex items-center gap-2.5">
+            {/* Visual graduated gauge column */}
+            <div className="flex flex-col items-center">
+              <div
+                className="w-5 h-14 border-2 border-black bg-white relative flex flex-col justify-end overflow-hidden"
+                title={`Nível da maré: ${tideHeight.toFixed(2)}m (${waterPercent}% da escala)`}
               >
-                [{tendency === 'enchente' ? '▲ ENCHENDO' : tendency === 'vazante' ? '▼ VAZANDO' : 'ESTOFO'}]
+                {/* Water level fill */}
+                <div
+                  className="w-full bg-[#3b82f6] border-t-2 border-black transition-all duration-500"
+                  style={{ height: `${Math.min(100, Math.max(8, waterPercent))}%` }}
+                />
+                {/* Graduations */}
+                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-40">
+                  <div className="w-full border-b border-black" />
+                  <div className="w-full border-b border-black" />
+                  <div className="w-full border-b border-black" />
+                </div>
+              </div>
+              <span className="text-[8px] font-bold text-[#888888] mt-0.5">RÉGUA</span>
+            </div>
+
+            <div>
+              <span className="block text-[10px] font-bold uppercase text-[#888888]">
+                NÍVEL DA MARÉ
+              </span>
+              <div className="flex items-baseline gap-1">
+                <span className="font-display text-2xl sm:text-3xl font-bold text-black tabular-nums">
+                  {tideHeight.toFixed(2)}M
+                </span>
+                <span
+                  className={`text-[10px] font-bold uppercase ${
+                    tendency === 'enchente'
+                      ? 'text-[#008800]'
+                      : tendency === 'vazante'
+                      ? 'text-[#d42020]'
+                      : 'text-[#888888]'
+                  }`}
+                >
+                  [{tendency === 'enchente' ? '▲ ENCHENDO' : tendency === 'vazante' ? '▼ VAZANDO' : 'ESTOFO'}]
+                </span>
+              </div>
+              <span className="text-[9px] text-[#666] block">
+                {waterPercent}% DA AMPLITUDE MÁX
               </span>
             </div>
           </div>
 
-          {/* Real Ocean Waves from Marine API */}
+          {/* Real Ocean Waves from Open-Meteo Marine API */}
           {realMarineConditions && (
             <div className="pr-3 border-r-2 border-black/20">
               <span className="block text-[10px] font-bold uppercase text-[#888888] flex items-center gap-1">
@@ -121,10 +180,11 @@ export const NearestBeachBanner: React.FC<NearestBeachBannerProps> = ({
               <div className="text-xs font-bold text-black tabular-nums">
                 {realMarineConditions.waveHeightMeters}m · {realMarineConditions.wavePeriodSeconds}s
               </div>
+              <span className="text-[9px] text-[#888888] block">MODELO ECMWF</span>
             </div>
           )}
 
-          {/* Wind / Direction */}
+          {/* Direction / Wind */}
           {realMarineConditions && (
             <div>
               <span className="block text-[10px] font-bold uppercase text-[#888888] flex items-center gap-1">
@@ -138,31 +198,13 @@ export const NearestBeachBanner: React.FC<NearestBeachBannerProps> = ({
           )}
         </div>
 
-        {/* Right Section: Actions (Select Beach & Search) */}
+        {/* Right Section: Search Beach Button */}
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => onSelectBeach(nearestBeach)}
-            className={`px-3 py-2 text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer transition-colors ${
-              isActiveStationBeach
-                ? 'bg-black text-white cursor-default'
-                : 'border-2 border-black bg-white hover:bg-black hover:text-white text-black shadow-[2px_2px_0px_#000]'
-            }`}
-          >
-            {isActiveStationBeach ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-[#008800]" />
-                <span>PRAIA SELECIONADA</span>
-              </>
-            ) : (
-              <span>VER TÁBUA DESTA PRAIA</span>
-            )}
-          </button>
-
-          <button
             onClick={onOpenSearch}
-            className="px-3.5 py-2 bg-black hover:bg-[#333] text-white text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#000]"
+            className="px-4 py-2 bg-black hover:bg-[#333] text-white text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#000]"
           >
-            <Search className="w-3.5 h-3.5" />
+            <Search className="w-3.5 h-3.5 text-[#d42020]" />
             <span>BUSCAR PRAIA/CIDADE</span>
           </button>
         </div>

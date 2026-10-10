@@ -29,6 +29,7 @@ import {
 import { TopBar } from './components/TopBar';
 import { NearestBeachBanner } from './components/NearestBeachBanner';
 import { TideDashboard } from './components/TideDashboard';
+import { VisualTideGauge } from './components/VisualTideGauge';
 import { TideCurveCanvas } from './components/TideCurveCanvas';
 import { NauticalMapView } from './components/NauticalMapView';
 import { AlertsManager } from './components/AlertsManager';
@@ -371,19 +372,20 @@ export default function App() {
           onToggleTimeRange={setTimeRange}
         />
 
-        {/* COMPONENTE SEMPRE ABRINDO NO TOPO COM A PRAIA MAIS PRÓXIMA */}
+        {/* COMPONENTE SEMPRE NO TOPO: PRAIA EM DESTAQUE E AVISO DA MAIS PRÓXIMA */}
         <NearestBeachBanner
+          activeBeach={selectedBeach}
           nearestBeach={nearestInfo.beach}
-          distanceKm={nearestInfo.distanceKm}
-          distanceNM={nearestInfo.distanceNM}
+          isNearestBeach={selectedBeach.id === nearestInfo.beach.id}
+          distanceToActiveKm={calculateDistanceKm(userCoords.lat, userCoords.lng, selectedBeach.lat, selectedBeach.lng)}
+          distanceToNearestKm={nearestInfo.distanceKm}
           realMarineConditions={marineConditions}
-          tideHeight={nearestBeachTide.height}
-          tendency={nearestBeachTide.tendency}
+          tideHeight={status.currentHeight}
+          tendency={status.tendency}
           hasRealGPS={hasRealGPS}
           onRequestGPS={handleRequestGPS}
-          onSelectBeach={handleSelectBeach}
+          onResetToNearest={() => handleSelectBeach(nearestInfo.beach)}
           onOpenSearch={() => setIsSearchModalOpen(true)}
-          isActiveStationBeach={selectedBeach.id === nearestInfo.beach.id}
         />
 
         {/* Tab 1: Tábua de Marés */}
@@ -392,12 +394,27 @@ export default function App() {
             <TideDashboard
               station={station}
               allStations={TIDE_STATIONS}
-              onSelectStation={setStation}
+              onSelectStation={(st) => {
+                setStation(st);
+                // Also update selected beach to correspond to station
+                const matchingBeach = REAL_BRAZILIAN_BEACHES.find(b => b.nearestStationId === st.id);
+                if (matchingBeach) setSelectedBeach(matchingBeach);
+              }}
               status={status}
               todayExtremes={todayExtremes}
               vessel={vessel}
               onOpenVesselModal={() => setIsVesselModalOpen(true)}
               onOpenAlertsModal={() => setActiveTab('alerts')}
+            />
+
+            {/* REPRESENTAÇÃO VISUAL DA MARÉ (Corte Transversal & Coluna d'Água) */}
+            <VisualTideGauge
+              currentHeight={status.currentHeight}
+              maxTideRange={station.averageRange}
+              status={status}
+              todayExtremes={todayExtremes}
+              vessel={vessel}
+              stationName={selectedBeach.name}
             />
 
             <TideCurveCanvas

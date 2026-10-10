@@ -66,7 +66,7 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
 
   const currentX = getX(currentTime);
 
-  // Y-axis ticks
+  // Ticks do eixo Y
   const yTicks = useMemo(() => {
     const ticks: number[] = [];
     const step = maxHeight > 4 ? 1.0 : 0.5;
@@ -76,7 +76,7 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
     return ticks;
   }, [maxHeight]);
 
-  // X-axis ticks
+  // Ticks do eixo X
   const xTicks = useMemo(() => {
     const ticks: { timestamp: number; label: string }[] = [];
     const stepHours = timeRange === 168 ? 24 : 3;
@@ -107,23 +107,33 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
     : null;
 
   return (
-    <div className="p-6 bg-white border-b-2 border-black">
-      <div className="flex items-center justify-between mb-2">
-        <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#888888]">
-          Harmonic Prediction Curve (Astronomic) // {timeRange}H INTERVAL
-        </span>
+    <div className="p-6 bg-white border-b-2 border-black font-mono">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+        <div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#888888] block">
+            Gráfico Contínuo das Marés // {timeRange === 24 ? 'Previsão de 24 Horas' : 'Previsão de 7 Dias'}
+          </span>
+          <h4 className="font-display text-xl font-bold uppercase text-black">
+            Como a Maré vai Subir e Descer ao Longo do Dia
+          </h4>
+        </div>
+
         {inspectedPoint && (
-          <div className="font-mono text-xs font-bold text-[#111111] flex items-center gap-3">
+          <div className="text-xs font-bold text-[#111111] flex flex-wrap items-center gap-3 bg-[#f8f7f4] border border-black p-1.5 px-3">
             <span>
-              TIME: <span className="text-black">{new Date(inspectedPoint.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+              HORÁRIO: <strong className="text-black">{new Date(inspectedPoint.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</strong>
             </span>
+            <span>·</span>
             <span>
-              TIDE: <span className="text-[#d42020]">{inspectedPoint.height.toFixed(2)}M</span>
+              ALTURA: <strong className="text-[#3b82f6]">{inspectedPoint.height.toFixed(2)}m</strong>
             </span>
             {inspectedUKC && (
-              <span>
-                UKC: <span className="text-[#008800]">+{inspectedUKC.ukc.toFixed(2)}M</span>
-              </span>
+              <>
+                <span>·</span>
+                <span>
+                  FOLGA DO BARCO: <strong className={inspectedUKC.safetyStatus === 'safe' ? 'text-[#008800]' : 'text-[#d42020]'}>+{inspectedUKC.ukc.toFixed(2)}m livre</strong>
+                </span>
+              </>
             )}
           </div>
         )}
@@ -154,7 +164,7 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
             }
           }}
         >
-          {/* Y-axis horizontal grid lines */}
+          {/* Linhas horizontais de altura da água */}
           {yTicks.map((tick) => {
             const y = getY(tick);
             return (
@@ -174,7 +184,7 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
                   textAnchor="end"
                   fontFamily="Roboto Mono"
                   fontSize="10"
-                  fontWeight="700"
+                  fontWeight="bold"
                   fill="#888888"
                 >
                   {tick.toFixed(1)}m
@@ -183,7 +193,7 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
             );
           })}
 
-          {/* Low tide safety threshold line */}
+          {/* Linha de alerta de maré muito baixa */}
           {lowTideAlertThreshold > 0 && (
             <line
               x1={padding.left}
@@ -196,7 +206,7 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
             />
           )}
 
-          {/* X-axis vertical grid lines */}
+          {/* Linhas verticais de horário */}
           {xTicks.map((tick) => {
             const x = getX(tick.timestamp);
             return (
@@ -216,7 +226,7 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
                   textAnchor="middle"
                   fontFamily="Roboto Mono"
                   fontSize="10"
-                  fontWeight="700"
+                  fontWeight="bold"
                   fill="#888888"
                 >
                   {tick.label}
@@ -225,7 +235,7 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
             );
           })}
 
-          {/* Primary harmonic curve path (Stark ink black) */}
+          {/* Curva da maré contínua em tinta preta de alto contraste */}
           <path
             d={pathD}
             fill="none"
@@ -235,7 +245,7 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
             strokeLinejoin="round"
           />
 
-          {/* Extremes (High Tide / Low Tide markers) */}
+          {/* Pontos de Maré Alta e Maré Baixa */}
           {extremes.map((ext, idx) => {
             const extX = getX(ext.timestamp);
             if (extX < padding.left || extX > svgWidth - padding.right) return null;
@@ -251,30 +261,30 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
                   fill={isPM ? '#111111' : '#d42020'}
                 />
                 <rect
-                  x={extX - 22}
-                  y={isPM ? extY - 20 : extY + 8}
-                  width="44"
-                  height="14"
+                  x={extX - 25}
+                  y={isPM ? extY - 22 : extY + 8}
+                  width="50"
+                  height="16"
                   fill="#ffffff"
                   stroke="#111111"
                   strokeWidth="1.5"
                 />
                 <text
                   x={extX}
-                  y={isPM ? extY - 9 : extY + 19}
+                  y={isPM ? extY - 10 : extY + 20}
                   textAnchor="middle"
                   fontFamily="Roboto Mono"
                   fontSize="9"
-                  fontWeight="700"
+                  fontWeight="bold"
                   fill="#111111"
                 >
-                  {ext.height.toFixed(2)}m
+                  {isPM ? 'ALTA' : 'BAIXA'} {ext.height.toFixed(2)}m
                 </text>
               </g>
             );
           })}
 
-          {/* NOW_TIME indicator (Signal red dashed vertical line) */}
+          {/* Indicador do MOMENTO ATUAL (Linha vermelha tracejada) */}
           {currentX >= padding.left && currentX <= svgWidth - padding.right && (
             <g>
               <line
@@ -291,15 +301,15 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
                 y={18}
                 fontFamily="Roboto Mono"
                 fontSize="11"
-                fontWeight="700"
+                fontWeight="bold"
                 fill="#d42020"
               >
-                NOW_TIME [{new Date(currentTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}]
+                MOMENTO ATUAL [{new Date(currentTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}]
               </text>
             </g>
           )}
 
-          {/* Hover scrubber */}
+          {/* Scrubber do mouse ao passar por cima */}
           {hoveredPoint && (
             <g>
               <line
@@ -323,32 +333,32 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
         </svg>
       </div>
 
-      {/* 3 Figures strip matching Variation 6 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-        <div className="border border-black p-3 bg-[#f8f7f4] font-mono text-xs">
+      {/* Faixa explicativa em Português simples */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 text-xs">
+        <div className="border border-black p-3 bg-[#f8f7f4]">
           <strong className="block font-bold text-black uppercase text-[11px] mb-0.5">
-            FIGURE 01: HARMONICS
+            1. Previsão Astronômica Real
           </strong>
-          <span className="text-[#888888] text-[11px]">
-            Constants: M2, S2, N2, K1, O1, M4 (DHN Astronomical Calibration)
+          <span className="text-[#666] text-[11px] leading-relaxed">
+            Calculada a partir das posições exatas da Lua e do Sol sobre o litoral brasileiro, sem dados fictícios.
           </span>
         </div>
 
-        <div className="border border-black p-3 bg-[#f8f7f4] font-mono text-xs">
+        <div className="border border-black p-3 bg-[#f8f7f4]">
           <strong className="block font-bold text-black uppercase text-[11px] mb-0.5">
-            FIGURE 02: BATHYMETRY
+            2. Profundidade Total com a Maré
           </strong>
-          <span className="text-[#888888] text-[11px]">
-            Real-time depth integration: Chart Sounding + Tide Height - Draft
+          <span className="text-[#666] text-[11px] leading-relaxed">
+            A lâmina d'água no mapa soma a profundidade do fundo à altura da maré de agora para garantir que o barco passe livre.
           </span>
         </div>
 
-        <div className="border border-black p-3 bg-[#f8f7f4] font-mono text-xs">
+        <div className="border border-black p-3 bg-[#f8f7f4]">
           <strong className="block font-bold text-black uppercase text-[11px] mb-0.5">
-            FIGURE 03: RULE OF 12ths
+            3. Força da Correnteza Marítima
           </strong>
-          <span className="text-[#888888] text-[11px]">
-            Tidal stream flow distribution · Peak velocity in 3rd & 4th hour
+          <span className="text-[#666] text-[11px] leading-relaxed">
+            A corrente de maré atinge seu fluxo mais veloz entre a 3ª e a 4ª hora após a maré virar (Regra dos Dozeavos).
           </span>
         </div>
       </div>

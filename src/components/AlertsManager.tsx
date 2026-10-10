@@ -7,7 +7,7 @@ import {
   VesselProfile,
 } from '../types/tide';
 import { maritimeAudio } from '../utils/audioAlerts';
-import { AlertTriangle, Bell, CheckCircle, Plus, Trash2, Volume2 } from 'lucide-react';
+import { AlertTriangle, Bell, CheckCircle, Plus, Trash2, Volume2, Info } from 'lucide-react';
 
 interface AlertsManagerProps {
   rules: TideAlertRule[];
@@ -68,23 +68,23 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
     if (newType === 'high_tide') {
       operator = 'greater_than';
       unit = 'm';
-      desc = `TRIGGER: Altura > ${newThreshold.toFixed(2)}m (Píers e atracadouros).`;
+      desc = `Dispara quando o nível da água ultrapassar ${newThreshold.toFixed(2)}m (risco para píers e rampas).`;
     } else if (newType === 'low_tide') {
       operator = 'less_than';
       unit = 'm';
-      desc = `TRIGGER: Altura < ${newThreshold.toFixed(2)}m (Baixios e encalhe).`;
+      desc = `Dispara se o nível da água cair abaixo de ${newThreshold.toFixed(2)}m (risco de encalhe em bancos de areia).`;
     } else if (newType === 'ukc_clearance') {
       operator = 'less_than';
       unit = 'm';
-      desc = `TRIGGER: UKC < ${newThreshold.toFixed(2)}m sob a quilha.`;
+      desc = `Dispara quando a distância livre sob a quilha for menor que ${newThreshold.toFixed(2)}m.`;
     } else if (newType === 'spring_tide') {
       operator = 'greater_than';
       unit = '';
-      desc = 'TRIGGER: Luas Nova e Cheia com ampliação de maré.';
+      desc = 'Avisa nas luas Cheia e Nova sobre a variação máxima de maré e correntes fortes.';
     } else if (newType === 'strong_current') {
       operator = 'greater_than';
       unit = 'nós';
-      desc = `TRIGGER: Correnteza > ${newThreshold.toFixed(1)} nós.`;
+      desc = `Dispara quando a correnteza estimada for maior que ${newThreshold.toFixed(1)} nós.`;
     }
 
     const created: TideAlertRule = {
@@ -105,14 +105,29 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
     setIsCreatingRule(false);
   };
 
+  const getSoundLabel = (type: string) => {
+    switch (type) {
+      case 'danger':
+        return 'Alarme de Perigo';
+      case 'sonar':
+        return 'Sonar Náutico';
+      case 'foghorn':
+        return 'Buzina de Nevoeiro';
+      case 'shipbell':
+        return 'Sino de Bordo';
+      default:
+        return type;
+    }
+  };
+
   return (
-    <div className="p-6 bg-white border-b-2 border-black space-y-6 font-mono">
-      {/* Active Alerts Banner */}
+    <div className="p-5 sm:p-6 bg-white border-b-2 border-black space-y-6 font-mono">
+      {/* Faixa de Alertas Ativos */}
       {activeAlerts.length > 0 ? (
         <div className="border-2 border-[#d42020] bg-[#fff5f5] p-4 shadow-[3px_3px_0px_#d42020]">
           <div className="flex items-center gap-2 mb-2 text-[#d42020] font-bold text-xs uppercase">
             <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>CRITICAL TACTICAL ALARMS ACTIVE ({activeAlerts.length})</span>
+            <span>ALERTAS DE SEGURANÇA EMITIDOS AGORA ({activeAlerts.length})</span>
           </div>
           <div className="space-y-2">
             {activeAlerts.map((alt) => (
@@ -134,7 +149,7 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
                   className="px-3 py-1 bg-black text-white hover:bg-[#333] text-[11px] font-bold uppercase flex items-center gap-1.5 shrink-0 cursor-pointer"
                 >
                   <Volume2 className="w-3.5 h-3.5 text-[#d42020]" />
-                  <span>TEST ALARM</span>
+                  <span>TESTAR ALARME</span>
                 </button>
               </div>
             ))}
@@ -144,30 +159,33 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
         <div className="border-2 border-black bg-[#f8f7f4] p-3 flex items-center justify-between text-xs font-bold">
           <div className="flex items-center gap-2 text-black">
             <CheckCircle className="w-4 h-4 text-[#008800] shrink-0" />
-            <span>OPERATIONAL STATUS: NOMINAL // ALL TIDE TOLERANCES WITHIN SAFETY MARGIN</span>
+            <span>SITUAÇÃO NORMAL // NENHUM ALERTA DISPARADO NO MOMENTO</span>
           </div>
         </div>
       )}
 
-      {/* Rules Header & Form */}
+      {/* Cabeçalho de Regras e Botão Novo Alerta */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b-2 border-black">
           <div>
             <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#888888] block">
-              Safety Trigger Rules
+              Configuração de Avisos Preventivos
             </span>
             <h3 className="font-display text-2xl font-bold uppercase text-black">
-              Regras de Alerta Personalizadas
+              Meus Alertas e Notificações de Maré
             </h3>
+            <p className="text-xs text-[#666] mt-0.5">
+              Defina quando o sistema deve avisar com sinais sonoros e alertas visuais
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {notificationPermission !== 'granted' && (
               <button
                 onClick={requestNotificationPerm}
                 className="px-3 py-1.5 border-2 border-black bg-white hover:bg-[#eeebe6] text-black text-xs font-bold uppercase cursor-pointer"
               >
-                ENABLE WEB PUSH
+                ATIVAR NOTIFICAÇÕES NO NAVEGADOR
               </button>
             )}
 
@@ -176,12 +194,12 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
               className="px-3.5 py-1.5 bg-black hover:bg-[#333] text-white text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#000]"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>NEW RULE</span>
+              <span>CRIAR NOVO ALERTA</span>
             </button>
           </div>
         </div>
 
-        {/* Create Rule Form */}
+        {/* Formulário de Criação de Regra */}
         {isCreatingRule && (
           <form
             onSubmit={handleCreateRule}
@@ -190,12 +208,12 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
                 <label className="block font-bold uppercase text-[11px] mb-1">
-                  RULE_NAME
+                  Nome do Alerta
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Ex: Baixa-mar Canal Rasante"
+                  placeholder="Ex: Maré Baixa Crítica"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   className="w-full p-2 border-2 border-black bg-white font-bold"
@@ -204,7 +222,7 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
 
               <div>
                 <label className="block font-bold uppercase text-[11px] mb-1">
-                  TRIGGER_TYPE
+                  Quando Disparar o Alerta
                 </label>
                 <select
                   value={newType}
@@ -218,18 +236,18 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
                   }}
                   className="w-full p-2 border-2 border-black bg-white font-bold cursor-pointer"
                 >
-                  <option value="low_tide">Baixa-mar Crítica (Encalhe)</option>
-                  <option value="high_tide">Preia-mar Máxima (Inundação)</option>
-                  <option value="ukc_clearance">Folga de Quilha Mínima (UKC)</option>
-                  <option value="spring_tide">Maré de Sizígia (Lua Cheia/Nova)</option>
-                  <option value="strong_current">Correnteza Forte (Nós)</option>
+                  <option value="low_tide">Maré Baixa Crítica (Perigo de Encalhe)</option>
+                  <option value="high_tide">Maré Alta Máxima (Risco de Inundação)</option>
+                  <option value="ukc_clearance">Espaço Mínimo Sob o Barco (Folga da Quilha)</option>
+                  <option value="spring_tide">Maré de Sizígia (Lua Cheia ou Nova)</option>
+                  <option value="strong_current">Correnteza Forte (Velocidade do Fluxo)</option>
                 </select>
               </div>
 
               {newType !== 'spring_tide' && (
                 <div>
                   <label className="block font-bold uppercase text-[11px] mb-1">
-                    THRESHOLD ({newType === 'strong_current' ? 'KTS' : 'METERS'})
+                    Valor Limite ({newType === 'strong_current' ? 'Nós' : 'Metros'})
                   </label>
                   <input
                     type="number"
@@ -244,7 +262,7 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
 
               <div>
                 <label className="block font-bold uppercase text-[11px] mb-1">
-                  ACOUSTIC_SIGNAL
+                  Som de Alerta
                 </label>
                 <div className="flex items-center gap-1">
                   <select
@@ -254,16 +272,16 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
                     }
                     className="flex-1 p-2 border-2 border-black bg-white font-bold cursor-pointer"
                   >
-                    <option value="danger">Alarme Perigo</option>
-                    <option value="sonar">Sonar Ping</option>
-                    <option value="foghorn">Buzina Nevoeiro</option>
+                    <option value="danger">Alarme de Perigo</option>
+                    <option value="sonar">Sonar Náutico</option>
+                    <option value="foghorn">Buzina de Nevoeiro</option>
                     <option value="shipbell">Sino de Bordo</option>
                   </select>
                   <button
                     type="button"
                     onClick={() => maritimeAudio.playSound(newSound)}
                     className="p-2 border-2 border-black bg-white hover:bg-black hover:text-white cursor-pointer"
-                    title="Test Sound"
+                    title="Testar este som"
                   >
                     <Volume2 className="w-4 h-4" />
                   </button>
@@ -275,21 +293,21 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
               <button
                 type="button"
                 onClick={() => setIsCreatingRule(false)}
-                className="px-3 py-1.5 border-2 border-black bg-white text-black font-bold uppercase cursor-pointer"
+                className="px-3 py-1.5 border-2 border-black bg-white text-black font-bold uppercase cursor-pointer hover:bg-[#ddd]"
               >
-                CANCEL
+                CANCELAR
               </button>
               <button
                 type="submit"
-                className="px-4 py-1.5 bg-black text-white font-bold uppercase cursor-pointer"
+                className="px-4 py-1.5 bg-black text-white font-bold uppercase cursor-pointer hover:bg-[#333]"
               >
-                SAVE RULE
+                SALVAR ALERTA
               </button>
             </div>
           </form>
         )}
 
-        {/* Rules Table */}
+        {/* Lista de Regras Configuradas */}
         <div className="space-y-3">
           {rules.map((rule) => (
             <div
@@ -314,9 +332,10 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
                 <button
                   onClick={() => maritimeAudio.playSound(rule.soundType)}
                   className="px-2 py-1 text-[11px] font-bold uppercase border-2 border-black bg-white hover:bg-[#eeebe6] flex items-center gap-1 cursor-pointer"
+                  title="Ouvir som deste alerta"
                 >
-                  <Volume2 className="w-3 h-3" />
-                  <span>{rule.soundType}</span>
+                  <Volume2 className="w-3 h-3 text-[#d42020]" />
+                  <span>{getSoundLabel(rule.soundType)}</span>
                 </button>
 
                 <button
@@ -325,13 +344,13 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
                     rule.enabled ? 'bg-black text-white' : 'bg-white text-black'
                   }`}
                 >
-                  {rule.enabled ? 'ARMED' : 'MUTED'}
+                  {rule.enabled ? 'ATIVADO' : 'PAUSADO'}
                 </button>
 
                 <button
                   onClick={() => handleDeleteRule(rule.id)}
                   className="p-1 text-black hover:text-[#d42020] cursor-pointer"
-                  title="Delete"
+                  title="Excluir alerta"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

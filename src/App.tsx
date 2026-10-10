@@ -459,10 +459,10 @@ export default function App() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-2 border-black">
               <div>
                 <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#888888] block">
-                  Offline Navigation Packs
+                  Navegação Segura Sem Sinal
                 </span>
                 <h3 className="font-display text-2xl font-bold uppercase text-black">
-                  Gerenciador de Cartas Offline
+                  Gerenciador de Cartas e Mapas Offline
                 </h3>
               </div>
 
@@ -471,7 +471,7 @@ export default function App() {
                 className="px-4 py-2 bg-black hover:bg-[#333] text-white text-xs font-bold uppercase flex items-center gap-2 cursor-pointer shadow-[2px_2px_0px_#000]"
               >
                 <Download className="w-4 h-4" />
-                <span>OPEN DOWNLOAD CONSOLE</span>
+                <span>BAIXAR PACOTE DE MAPAS</span>
               </button>
             </div>
 
@@ -491,14 +491,14 @@ export default function App() {
                       </div>
                       <div className="text-xs text-[#666]">{st.portName}</div>
                       <div className="text-[10px] text-[#888888] mt-1">
-                        SIZE: ~{st.offlineSizeMB} MB · {st.hazards.length} HAZARDS
+                        TAMANHO: ~{st.offlineSizeMB} MB · {st.hazards.length} PONTOS CRÍTICOS NÁUTICOS
                       </div>
                     </div>
 
                     <div>
                       {isSaved ? (
                         <span className="px-2 py-1 bg-black text-white text-[10px] font-bold uppercase">
-                          CACHED_LOCAL
+                          SALVO NO APARELHO
                         </span>
                       ) : (
                         <button
@@ -508,7 +508,7 @@ export default function App() {
                           }}
                           className="px-3 py-1 border-2 border-black bg-white hover:bg-black hover:text-white text-xs font-bold uppercase cursor-pointer"
                         >
-                          DOWNLOAD
+                          BAIXAR AGORA
                         </button>
                       )}
                     </div>
@@ -556,17 +556,17 @@ export default function App() {
         </button>
       </div>
 
-      {/* Tactical Maritime Footer matching Variation 6 */}
+      {/* Rodapé Marítimo com Informações Claras */}
       <footer className="border-t-2 border-black px-4 sm:px-6 py-2.5 bg-[#f8f7f4] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] font-bold uppercase text-[#111111]">
         <div>
-          DATA SOURCE: DHN_BRAZIL // COORDINATES: {selectedBeach ? selectedBeach.lat.toFixed(4) : station.lat.toFixed(4)},{' '}
-          {selectedBeach ? selectedBeach.lng.toFixed(4) : station.lng.toFixed(4)}
+          FONTE OFICIAL: MARINHA DO BRASIL (DHN) // COORDENADAS: {selectedBeach ? selectedBeach.lat.toFixed(4) : station.lat.toFixed(4)}°,{' '}
+          {selectedBeach ? selectedBeach.lng.toFixed(4) : station.lng.toFixed(4)}°
         </div>
         <div>
-          ACTIVE: {selectedBeach ? selectedBeach.name.toUpperCase() : station.id.toUpperCase().replace('-', '_')} // TIME_LOCAL:{' '}
+          LOCAL: {selectedBeach ? selectedBeach.name.toUpperCase() : station.id.toUpperCase().replace('-', '_')} // HORÁRIO LOCAL:{' '}
           {new Date(currentTime).toLocaleTimeString('pt-BR')}
         </div>
-        <div>REAL_API: OPEN_METEO_MARINE // SYS_BUILD: 2.5_PRO</div>
+        <div>ONDAS AO VIVO: OPEN-METEO MARINE // VERSÃO 2.5</div>
       </footer>
 
       {/* Modals */}

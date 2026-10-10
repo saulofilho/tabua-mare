@@ -8,11 +8,42 @@
     <meta property="og:title" content="MaréSegura - Tábua de Marés e Navegação Offline" />
     <meta property="og:description" content="Tábua de marés em tempo real, curva astronômica, alertas personalizados de segurança e cartas náuticas offline com cálculo de folga de quilha." />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MaréSegura" />
+    <meta property="og:image" content="./og-image.jpg" />
+    <meta property="og:image:secure_url" content="./og-image.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="720" />
+    <meta property="og:image:alt" content="MaréSegura - Tábua de Marés em Tempo Real e Navegação Offline" />
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MaréSegura - Tábua de Marés e Navegação Offline" />
+    <meta name="twitter:description" content="Tábua de marés em tempo real, curva astronômica, alertas personalizados de segurança e cartas náuticas offline com cálculo de folga de quilha." />
+    <meta name="twitter:image" content="./og-image.jpg" />
+    <meta name="twitter:image:alt" content="MaréSegura - Tábua de Marés em Tempo Real e Navegação Offline" />
+
+    <!-- Icons & Manifest -->
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="alternate icon" href="./favicon.svg" />
     <link rel="apple-touch-icon" href="./favicon.svg" />
+    <link rel="image_src" href="./og-image.jpg" />
     <link rel="manifest" href="./manifest.json" />
     <meta name="theme-color" content="#111111" />
+
+    <script>
+      // Garante URL absoluta para scrapers de redes sociais (WhatsApp, Telegram, X, Facebook)
+      try {
+        if (window.location && window.location.origin) {
+          var baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+          var absImgUrl = new URL('og-image.jpg', baseUrl).href;
+          var ogTag = document.querySelector('meta[property="og:image"]');
+          if (ogTag) ogTag.setAttribute('content', absImgUrl);
+          var twTag = document.querySelector('meta[name="twitter:image"]');
+          if (twTag) twTag.setAttribute('content', absImgUrl);
+        }
+      } catch (e) {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Roboto+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">

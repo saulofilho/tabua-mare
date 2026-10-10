@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { VesselProfile } from '../types/tide';
-import { X } from 'lucide-react';
+import { X, HelpCircle } from 'lucide-react';
 
 interface VesselConfigModalProps {
   isOpen: boolean;
@@ -41,10 +41,10 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
         <div className="flex items-center justify-between pb-4 border-b-2 border-black">
           <div>
             <h3 className="font-display text-2xl font-bold uppercase text-black">
-              Vessel Draft Calibration
+              Calibrar Dados do Barco
             </h3>
             <p className="text-xs text-[#888888] uppercase mt-0.5">
-              Under-Keel Clearance Parameters (UKC)
+              Medidas para Não Encalhar e Navegar com Segurança
             </p>
           </div>
           <button
@@ -58,7 +58,7 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
         <form onSubmit={handleSubmit} className="mt-5 space-y-4 text-xs font-bold">
           <div>
             <label className="block uppercase text-[11px] mb-1">
-              VESSEL_NAME
+              Nome da Embarcação
             </label>
             <input
               type="text"
@@ -66,13 +66,14 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full p-2 border-2 border-black bg-white"
+              placeholder="Ex: Albatroz, Marujo..."
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block uppercase text-[11px] mb-1">
-                HULL_TYPE
+                Tipo de Embarcação
               </label>
               <select
                 value={vesselType}
@@ -82,16 +83,16 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
                 className="w-full p-2 border-2 border-black bg-white cursor-pointer"
               >
                 <option value="veleiro">Veleiro (Quilha Fixa)</option>
-                <option value="lancha">Lancha / Fast Boat</option>
-                <option value="pesqueiro">Pesqueiro / Trawler</option>
-                <option value="catamara">Catamarã</option>
-                <option value="escuna">Escuna</option>
+                <option value="lancha">Lancha / Bote Motorizado</option>
+                <option value="pesqueiro">Barco de Pesca / Traineira</option>
+                <option value="catamara">Catamarã (Dois Cascos)</option>
+                <option value="escuna">Escuna de Passeio</option>
               </select>
             </div>
 
             <div>
               <label className="block uppercase text-[11px] mb-1">
-                DRAFT (CALADO) [M]
+                Calado (Profundidade Submersa) [m]
               </label>
               <input
                 type="number"
@@ -102,13 +103,16 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
                 onChange={(e) => setDraft(Number(e.target.value))}
                 className="w-full p-2 border-2 border-black bg-white"
               />
+              <span className="text-[10px] text-[#666] font-normal block mt-0.5">
+                Quanto o barco afunda na água
+              </span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block uppercase text-[11px] mb-1">
-                SAFETY_BUFFER (UKC) [M]
+                Folga Mínima Sob o Barco (UKC) [m]
               </label>
               <input
                 type="number"
@@ -119,11 +123,14 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
                 onChange={(e) => setSafetyMargin(Number(e.target.value))}
                 className="w-full p-2 border-2 border-black bg-white"
               />
+              <span className="text-[10px] text-[#666] font-normal block mt-0.5">
+                Espaço reserva entre a quilha e o fundo
+              </span>
             </div>
 
             <div>
               <label className="block uppercase text-[11px] mb-1">
-                AIR_DRAFT (MASTRO) [M]
+                Altura Total / Mastro [m]
               </label>
               <input
                 type="number"
@@ -134,11 +141,14 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
                 onChange={(e) => setAirDraft(Number(e.target.value))}
                 className="w-full p-2 border-2 border-black bg-white"
               />
+              <span className="text-[10px] text-[#666] font-normal block mt-0.5">
+                Para passar sob pontes e cabos
+              </span>
             </div>
           </div>
 
-          <div className="p-3 border-2 border-black bg-[#eeebe6] text-[11px] text-black">
-            <strong>TACTICAL MARITIME RULE:</strong> Alertas sonoros serão disparados se a lâmina d'água restante sobre a quilha cair abaixo de {safetyMargin.toFixed(2)}m em qualquer baixio ou canal.
+          <div className="p-3 border-2 border-black bg-[#eeebe6] text-[11px] text-black leading-relaxed">
+            <strong>Regra de Segurança da Maré:</strong> O aplicativo calculará automaticamente se a profundidade da água no momento é suficiente para o calado do seu barco ({draft.toFixed(2)}m) mais a folga de segurança ({safetyMargin.toFixed(2)}m), avisando se houver risco de raspar ou encalhar.
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t-2 border-black">
@@ -147,13 +157,13 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 border-2 border-black bg-white text-black uppercase cursor-pointer hover:bg-[#eeebe6]"
             >
-              CANCEL
+              CANCELAR
             </button>
             <button
               type="submit"
               className="px-5 py-2 bg-black text-white uppercase cursor-pointer hover:bg-[#333]"
             >
-              UPDATE VESSEL
+              SALVAR CONFIGURAÇÃO
             </button>
           </div>
         </form>

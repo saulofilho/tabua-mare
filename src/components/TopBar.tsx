@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, WifiOff, RefreshCw, Download, Anchor } from 'lucide-react';
+import { Wifi, WifiOff, Download } from 'lucide-react';
 
 interface TopBarProps {
   activeTab: 'tides' | 'map' | 'alerts' | 'offline';
@@ -33,8 +33,8 @@ export const TopBar: React.FC<TopBarProps> = ({
           className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[#111111] uppercase flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
           <span>MaréSegura</span>
-          <span className="font-mono text-[11px] font-bold border-2 border-black px-2 py-0.5 tracking-normal bg-white">
-            {isOfflineMode ? 'OFFLINE_MODE' : 'ONLINE_GPS'}
+          <span className="font-mono text-[10px] font-bold border-2 border-black px-2 py-0.5 tracking-normal bg-white">
+            {isOfflineMode ? 'MODO OFFLINE' : 'SISTEMA ONLINE'}
           </span>
         </a>
       </div>
@@ -60,7 +60,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               : 'border-2 border-black bg-white text-black hover:bg-[#eeebe6]'
           }`}
         >
-          Carta & GPS
+          Mapa Náutico & GPS
         </button>
 
         <button
@@ -71,7 +71,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               : 'border-2 border-black bg-white text-black hover:bg-[#eeebe6]'
           }`}
         >
-          Alertas
+          Meus Alertas
         </button>
 
         <button
@@ -82,7 +82,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               : 'border-2 border-black bg-white text-black hover:bg-[#eeebe6]'
           }`}
         >
-          Cartas Offline
+          Mapas Offline
         </button>
       </nav>
 
@@ -96,7 +96,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 timeRange === 24 ? 'bg-black text-[#f8f7f4]' : 'bg-white text-black hover:bg-[#eeebe6]'
               }`}
             >
-              24H VIEW
+              24 Horas
             </button>
             <button
               onClick={() => onToggleTimeRange(168)}
@@ -104,35 +104,35 @@ export const TopBar: React.FC<TopBarProps> = ({
                 timeRange === 168 ? 'bg-black text-[#f8f7f4]' : 'bg-white text-black hover:bg-[#eeebe6]'
               }`}
             >
-              7D VIEW
+              Próximos 7 Dias
             </button>
           </div>
         )}
 
         <button
           onClick={onToggleOfflineMode}
-          title="Alternar simulação de modo offline / online"
+          title="Alternar entre modo online e teste offline sem sinal no mar"
           className="px-2.5 py-1.5 border-2 border-black bg-white hover:bg-[#eeebe6] text-black font-mono text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer"
         >
           {isOfflineMode ? (
             <>
               <WifiOff className="w-3.5 h-3.5 text-[#d42020]" />
-              <span className="hidden sm:inline">Offline</span>
+              <span className="hidden sm:inline">Modo Sem Sinal</span>
             </>
           ) : (
             <>
-              <Wifi className="w-3.5 h-3.5 text-emerald-700" />
-              <span className="hidden sm:inline">Online</span>
+              <Wifi className="w-3.5 h-3.5 text-[#008800]" />
+              <span className="hidden sm:inline">Conectado</span>
             </>
           )}
         </button>
 
         <button
           onClick={onOpenDownloadModal}
-          className="px-3.5 py-1.5 bg-black hover:bg-[#2b2b2b] text-[#f8f7f4] font-mono text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer shadow-none"
+          className="px-3.5 py-1.5 bg-black hover:bg-[#333] text-[#f8f7f4] font-mono text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer shadow-none"
         >
           <Download className="w-3.5 h-3.5" />
-          <span>Sync Data</span>
+          <span>Baixar Mapas</span>
         </button>
       </div>
     </header>

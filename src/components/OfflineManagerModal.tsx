@@ -56,14 +56,14 @@ export const OfflineManagerModal: React.FC<OfflineManagerModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-mono">
       <div className="bg-[#f8f7f4] border-4 border-black w-full max-w-2xl max-h-[85vh] flex flex-col shadow-[8px_8px_0px_#000] overflow-hidden">
-        {/* Header */}
+        {/* Cabeçalho */}
         <div className="p-5 border-b-2 border-black flex items-center justify-between bg-white">
           <div>
             <h3 className="font-display text-2xl font-bold uppercase text-black">
-              Cartas Náuticas Offline
+              Cartas Náuticas e Mapas Offline
             </h3>
             <p className="text-xs text-[#888888] uppercase mt-0.5">
-              Tactical Tile Storage // High Seas Zero Connectivity
+              Navegação Segura em Alto-Mar Mesmo Sem Sinal de Internet
             </p>
           </div>
           <button
@@ -74,11 +74,11 @@ export const OfflineManagerModal: React.FC<OfflineManagerModalProps> = ({
           </button>
         </div>
 
-        {/* Stats strip */}
+        {/* Faixa de estatísticas de armazenamento */}
         <div className="px-5 py-3 bg-[#eeebe6] border-b-2 border-black flex flex-wrap items-center justify-between gap-3 text-xs font-bold">
           <div>
-            STORAGE: <span className="text-black">{storageStats.totalMB} MB</span> ·{' '}
-            <span>{storageStats.downloadedCount} PACKAGES CACHED</span>
+            ESPAÇO UTILIZADO: <span className="text-black">{storageStats.totalMB} MB</span> ·{' '}
+            <span>{storageStats.downloadedCount} REGIÕES SALVAS OFFLINE</span>
           </div>
 
           <button
@@ -87,11 +87,11 @@ export const OfflineManagerModal: React.FC<OfflineManagerModalProps> = ({
               isOfflineMode ? 'bg-[#d42020] text-white' : 'bg-white text-black'
             }`}
           >
-            {isOfflineMode ? 'OFFLINE SIM: ACTIVE' : 'OFFLINE SIM: DISABLED'}
+            {isOfflineMode ? 'MODO SEM INTERNET: ATIVO' : 'MODO ONLINE: CONECTADO'}
           </button>
         </div>
 
-        {/* Regions list */}
+        {/* Lista de regiões para download */}
         <div className="p-5 overflow-y-auto space-y-3 flex-1 bg-[#f8f7f4]">
           {stations.map((st) => {
             const status = offlineStatuses[st.id];
@@ -110,19 +110,19 @@ export const OfflineManagerModal: React.FC<OfflineManagerModalProps> = ({
                     </span>
                     {isDownloaded && (
                       <span className="bg-black text-white px-1.5 py-0.2 text-[10px] font-bold">
-                        CACHED_LOCAL
+                        SALVO NO APARELHO
                       </span>
                     )}
                   </div>
                   <div className="text-xs text-[#666] mt-0.5">{st.portName}</div>
                   <div className="text-[10px] text-[#888888] mt-1">
-                    PKG_SIZE: ~{st.offlineSizeMB} MB · TILES: {st.tileCountEstimate}
+                    TAMANHO APROXIMADO: ~{st.offlineSizeMB} MB · {st.hazards.length} PONTOS CRÍTICOS NÁUTICOS
                   </div>
 
                   {isDownloading && (
                     <div className="mt-2 w-full max-w-xs">
                       <div className="flex justify-between text-[10px] font-bold text-black mb-1">
-                        <span>DOWNLOADING TILES...</span>
+                        <span>BAIXANDO MAPAS NÁUTICOS...</span>
                         <span>{downloadProgress}%</span>
                       </div>
                       <div className="w-full h-2 border border-black bg-white">
@@ -141,7 +141,7 @@ export const OfflineManagerModal: React.FC<OfflineManagerModalProps> = ({
                       onClick={() => handleRemove(st.id)}
                       className="px-3 py-1.5 border-2 border-[#d42020] text-[#d42020] hover:bg-[#d42020] hover:text-white font-bold text-xs uppercase cursor-pointer transition-colors"
                     >
-                      DELETE CACHE
+                      EXCLUIR DO APARELHO
                     </button>
                   ) : (
                     <button
@@ -149,7 +149,7 @@ export const OfflineManagerModal: React.FC<OfflineManagerModalProps> = ({
                       onClick={() => handleDownload(st)}
                       className="px-3.5 py-1.5 bg-black hover:bg-[#333] text-white font-bold text-xs uppercase cursor-pointer disabled:opacity-50"
                     >
-                      {isDownloading ? 'DOWNLOADING...' : 'DOWNLOAD TILES'}
+                      {isDownloading ? 'BAIXANDO...' : 'BAIXAR PACOTE OFFLINE'}
                     </button>
                   )}
                 </div>
@@ -158,16 +158,16 @@ export const OfflineManagerModal: React.FC<OfflineManagerModalProps> = ({
           })}
         </div>
 
-        {/* Footer */}
+        {/* Rodapé do Modal */}
         <div className="p-4 bg-white border-t-2 border-black flex items-center justify-between text-xs">
           <span className="text-[#888888] uppercase">
-            Data saved locally in browser CacheStorage
+            Mapas salvos na memória local do navegador para uso sem rede
           </span>
           <button
             onClick={onClose}
             className="px-4 py-2 bg-black text-white font-bold uppercase text-xs cursor-pointer hover:bg-[#333]"
           >
-            CLOSE
+            FECHAR
           </button>
         </div>
       </div>

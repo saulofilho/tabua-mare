@@ -178,7 +178,7 @@ export const VisualTideGauge: React.FC<VisualTideGaugeProps> = ({
             fontWeight="bold"
             fill="#666666"
           >
-            ZERO DA CARTA (DATUM DHN 0.00M)
+            NÍVEL ZERO DA CARTA NÁUTICA (DATUM DHN 0.00M)
           </text>
 
           {/* High Tide line (Preia-mar PM) */}
@@ -200,7 +200,7 @@ export const VisualTideGauge: React.FC<VisualTideGaugeProps> = ({
             fontWeight="bold"
             fill="#111111"
           >
-            PREIA-MAR MÁX. [{highestPM.toFixed(2)}M]
+            MARÉ ALTA MÁX. [{highestPM.toFixed(2)}M]
           </text>
 
           {/* Low Tide line (Baixa-mar BM) */}
@@ -222,7 +222,7 @@ export const VisualTideGauge: React.FC<VisualTideGaugeProps> = ({
             fontWeight="bold"
             fill="#d42020"
           >
-            BAIXA-MAR MÍN. [{lowestBM.toFixed(2)}M]
+            MARÉ BAIXA MÍN. [{lowestBM.toFixed(2)}M]
           </text>
 
           {/* Left Vertical Tide Pole (Régua Maregráfica Graduada) */}
@@ -313,7 +313,7 @@ export const VisualTideGauge: React.FC<VisualTideGaugeProps> = ({
             <rect
               x={boatX + 66}
               y={(keelBottomY + seabedY) / 2 - 10}
-              width="100"
+              width="130"
               height="20"
               fill="#ffffff"
               stroke={ukc < 0.5 ? '#d42020' : '#000000'}
@@ -327,7 +327,7 @@ export const VisualTideGauge: React.FC<VisualTideGaugeProps> = ({
               fontWeight="bold"
               fill={ukc < 0.5 ? '#d42020' : '#008800'}
             >
-              UKC: {ukc >= 0 ? `+${ukc.toFixed(2)}m` : `${ukc.toFixed(2)}m`}
+              FOLGA: {ukc >= 0 ? `+${ukc.toFixed(2)}m livre` : `${ukc.toFixed(2)}m`}
             </text>
           </g>
 

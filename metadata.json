@@ -1,0 +1,6 @@
+{
+  "name": "MaréSegura - Tábua de Marés e Navegação Offline",
+  "description": "Tábua de marés em tempo real, curva astronômica, alertas personalizados de segurança e cartas náuticas offline com cálculo de folga de quilha.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

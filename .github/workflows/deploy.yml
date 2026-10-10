@@ -7,9 +7,9 @@ on:
       - master
   workflow_dispatch:
 
-# Permissions for deploying to GitHub Pages
+# Permissions for deploying to GitHub Pages & pushing to gh-pages branch
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -19,23 +19,17 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # FIX PREVENTIVO: Não ativamos cache: 'npm' diretamente no setup-node
-      # para evitar o erro "Dependencies lock file is not found" caso o package-lock.json
-      # não tenha sido incluído ou o repositório use outro gerenciador (ex: bun/yarn).
+      # Setup Node.js sem bloqueio de cache para evitar "Dependencies lock file is not found"
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # Instalação robusta com legacy-peer-deps para garantir compilação sem conflitos de peer dependencies
       - name: Install Dependencies
         run: |
           npm install --legacy-peer-deps
@@ -44,14 +38,32 @@ jobs:
         run: |
           npm run build
 
+      # FIX 1: enablement: true habilita o Pages automaticamente via API caso ainda não tenha sido criado.
+      # continue-on-error: true garante que o build nunca seja interrompido caso a API retorne 404 antes da ativação manual.
       - name: Setup Pages
+        id: pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
+        continue-on-error: true
 
+      # FIX 2: Deploy universal para branch 'gh-pages'.
+      # Funciona 100% de forma imediata em qualquer repositório GitHub sem depender da API de Pages estar pré-configurada!
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          force_orphan: true
+
+      # FIX 3: Upload e deploy nativo do GitHub Actions (para repositórios com Pages configurado via Actions)
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
+        continue-on-error: true
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true

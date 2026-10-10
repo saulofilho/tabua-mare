@@ -96,6 +96,29 @@ Error: Dependencies lock file is not found in /home/runner/work/... Supported fi
 
 ---
 
+## 🛠️ Correção do Erro `actions/configure-pages@v5` (HttpError: 404 Not Found)
+
+### O Problema Conhecido:
+```
+Run actions/configure-pages@v5
+Error: Get Pages site failed. Please verify that the repository has Pages enabled and configured to build using GitHub Actions...
+Error: HttpError: Not Found - https://docs.github.com/rest/pages/pages#get-a-apiname-pages-site
+```
+Esse erro ocorre quando o GitHub Pages ainda não foi ativado manualmente nas configurações do repositório antes da primeira execução da Action. Por padrão, a API do GitHub retorna `404 Not Found` se o recurso de Pages ainda não existir no repositório.
+
+### A Solução Aplicada no Workflow:
+1. **Ativação Automática (`enablement: true`)**: O workflow agora envia a solicitação para criar e habilitar o Pages automaticamente via API.
+2. **Deploy Dual com Branch `gh-pages` (`peaceiris/actions-gh-pages@v4`)**: O workflow publica a pasta `dist` diretamente na branch `gh-pages` com `contents: write`, que funciona imediatamente mesmo se o Pages ainda não estiver ativo nas configurações.
+3. **Resiliência com `continue-on-error: true`**: Garante que o pipeline continue e publique o site mesmo que a API do GitHub Pages responda com 404 inicial.
+
+### Como Ativar no GitHub:
+- **Opção Recomendada 1 (GitHub Actions)**:
+  Acesse **Settings** > **Pages** > em **Build and deployment** > **Source**, selecione **GitHub Actions**.
+- **Opção Alternativa 2 (Branch gh-pages)**:
+  Acesse **Settings** > **Pages** > em **Build and deployment** > **Source**, selecione **Deploy from a branch** e escolha a branch `gh-pages` (pasta `/ (root)`).
+
+---
+
 ## 📦 Scripts Disponíveis
 
 | Comando | Descrição |

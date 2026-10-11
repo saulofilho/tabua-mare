@@ -129,3 +129,5 @@ export interface OfflineRegionStatus {
   sizeBytes: number;
   tilesCached: number;
 }
+
+export type TemperatureUnit = 'C' | 'F';

@@ -5,6 +5,7 @@ import {
   TideAlertRule,
   TideStation,
   VesselProfile,
+  TemperatureUnit,
 } from './types/tide';
 import { TIDE_STATIONS } from './data/tideStations';
 import { REAL_BRAZILIAN_BEACHES, BeachLocation } from './data/beaches';
@@ -103,6 +104,26 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(getOfflineModeActive());
   const [timeRange, setTimeRange] = useState<24 | 168>(24);
+  const [tempUnit, setTempUnit] = useState<TemperatureUnit>(() => {
+    try {
+      const saved = localStorage.getItem('maresegura_temp_unit');
+      return (saved === 'F' ? 'F' : 'C') as TemperatureUnit;
+    } catch {
+      return 'C';
+    }
+  });
+
+  const handleToggleTempUnit = () => {
+    setTempUnit((prev) => {
+      const next: TemperatureUnit = prev === 'C' ? 'F' : 'C';
+      try {
+        localStorage.setItem('maresegura_temp_unit', next);
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   // User GPS coordinates (Real device position)
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>({
@@ -370,6 +391,8 @@ export default function App() {
           onOpenDownloadModal={() => setIsOfflineModalOpen(true)}
           timeRange={timeRange}
           onToggleTimeRange={setTimeRange}
+          tempUnit={tempUnit}
+          onToggleTempUnit={handleToggleTempUnit}
         />
 
         {/* COMPONENTE SEMPRE NO TOPO: PRAIA EM DESTAQUE E AVISO DA MAIS PRÓXIMA */}
@@ -383,6 +406,8 @@ export default function App() {
           tideHeight={status.currentHeight}
           tendency={status.tendency}
           hasRealGPS={hasRealGPS}
+          tempUnit={tempUnit}
+          onToggleTempUnit={handleToggleTempUnit}
           onRequestGPS={handleRequestGPS}
           onResetToNearest={() => handleSelectBeach(nearestInfo.beach)}
           onOpenSearch={() => setIsSearchModalOpen(true)}
@@ -403,6 +428,9 @@ export default function App() {
               status={status}
               todayExtremes={todayExtremes}
               vessel={vessel}
+              realMarineConditions={marineConditions}
+              tempUnit={tempUnit}
+              onToggleTempUnit={handleToggleTempUnit}
               onOpenVesselModal={() => setIsVesselModalOpen(true)}
               onOpenAlertsModal={() => setActiveTab('alerts')}
             />

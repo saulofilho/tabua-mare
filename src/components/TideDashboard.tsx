@@ -4,8 +4,10 @@ import {
   TideExtreme,
   TideStation,
   VesselProfile,
+  TemperatureUnit,
 } from '../types/tide';
 import { calculateUKC } from '../utils/tideHarmonics';
+import { RealMarineConditions, formatTemperature } from '../services/realMarineApi';
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -23,6 +25,9 @@ import {
   CheckCircle,
   HelpCircle,
   Sparkles,
+  Thermometer,
+  Droplets,
+  CloudSun,
 } from 'lucide-react';
 
 interface TideDashboardProps {
@@ -32,6 +37,9 @@ interface TideDashboardProps {
   status: CurrentTideStatus;
   todayExtremes: TideExtreme[];
   vessel: VesselProfile;
+  realMarineConditions?: RealMarineConditions | null;
+  tempUnit: TemperatureUnit;
+  onToggleTempUnit: () => void;
   onOpenVesselModal: () => void;
   onOpenAlertsModal: () => void;
 }
@@ -43,6 +51,9 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
   status,
   todayExtremes,
   vessel,
+  realMarineConditions,
+  tempUnit,
+  onToggleTempUnit,
   onOpenVesselModal,
   onOpenAlertsModal,
 }) => {
@@ -58,16 +69,16 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
 
   return (
     <div className="w-full font-mono">
-      {/* 3 Cartões Principais de Telemetria com Linguagem Amigável */}
-      <div className="grid grid-cols-1 md:grid-cols-3 border-b-2 border-black">
+      {/* 4 Cartões Principais de Telemetria com Linguagem Amigável & Temperaturas */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border-b-2 border-black">
         {/* Célula 1: Altura da Maré em Tempo Real */}
-        <div className="p-6 border-b-2 md:border-b-0 md:border-r-2 border-black bg-[#f8f7f4]">
+        <div className="p-5 sm:p-6 border-b-2 sm:border-b-0 sm:border-r-2 border-black bg-[#f8f7f4]">
           <span className="block text-[11px] font-bold uppercase tracking-wider text-[#888888] mb-2">
             Nível da Água Agora // {station.name.split(' ')[0]}
           </span>
-          <div className="font-display text-6xl lg:text-7xl font-bold leading-none tracking-tight text-[#111111] tabular-nums">
+          <div className="font-display text-5xl lg:text-6xl font-bold leading-none tracking-tight text-[#111111] tabular-nums">
             {status.currentHeight.toFixed(2)}
-            <span className="text-2xl font-display ml-1">M</span>
+            <span className="text-xl font-display ml-1">M</span>
           </div>
           <div
             className={`text-xs font-bold uppercase mt-2.5 flex items-center gap-1.5 ${
@@ -81,45 +92,45 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
             {status.tendency === 'enchente' ? (
               <>
                 <ArrowUpRight className="w-4 h-4 text-[#008800]" />
-                <span>MARÉ SUBINDO (+{status.rateCmPerHour} CM POR HORA)</span>
+                <span>MARÉ SUBINDO (+{status.rateCmPerHour} CM/H)</span>
               </>
             ) : status.tendency === 'vazante' ? (
               <>
                 <ArrowDownRight className="w-4 h-4 text-[#d42020]" />
-                <span>MARÉ DESCENDO (-{status.rateCmPerHour} CM POR HORA)</span>
+                <span>MARÉ DESCENDO (-{status.rateCmPerHour} CM/H)</span>
               </>
             ) : (
-              <span>MARÉ ESTÁVEL (PONTO DE VIRADA / ESTOFO)</span>
+              <span>MARÉ ESTÁVEL (ESTOFO)</span>
             )}
           </div>
         </div>
 
         {/* Célula 2: Próxima Virada da Maré */}
-        <div className="p-6 border-b-2 md:border-b-0 md:border-r-2 border-black bg-[#f8f7f4]">
+        <div className="p-5 sm:p-6 border-b-2 lg:border-b-0 lg:border-r-2 border-black bg-[#f8f7f4]">
           <span className="block text-[11px] font-bold uppercase tracking-wider text-[#888888] mb-2">
             Próxima Virada da Maré
           </span>
-          <div className="font-display text-6xl lg:text-7xl font-bold leading-none tracking-tight text-[#111111] tabular-nums">
+          <div className="font-display text-5xl lg:text-6xl font-bold leading-none tracking-tight text-[#111111] tabular-nums">
             {status.nextExtreme.timeString}
           </div>
           <div className="text-xs font-bold uppercase mt-2.5 text-[#111111] flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-[#888888]" />
             <span>
               {status.nextExtreme.type === 'preia-mar'
-                ? `Pico de Maré Alta com ${status.nextExtreme.height.toFixed(2)} metros`
-                : `Ponto mais seco (Maré Baixa) com ${status.nextExtreme.height.toFixed(2)} metros`}
+                ? `Pico de Maré Alta (${status.nextExtreme.height.toFixed(2)}m)`
+                : `Maré Baixa Rasa (${status.nextExtreme.height.toFixed(2)}m)`}
             </span>
           </div>
         </div>
 
         {/* Célula 3: Espaço Sob o Barco (Folga da Quilha) */}
-        <div className="p-6 bg-[#f8f7f4]">
+        <div className="p-5 sm:p-6 border-b-2 sm:border-b-0 sm:border-r-2 border-black bg-[#f8f7f4]">
           <span className="block text-[11px] font-bold uppercase tracking-wider text-[#888888] mb-2">
-            Espaço Livre Sob o Barco (Para Não Encalhar)
+            Folga Sob o Casco (Não Encalhar)
           </span>
-          <div className="font-display text-6xl lg:text-7xl font-bold leading-none tracking-tight text-[#111111] tabular-nums">
+          <div className="font-display text-5xl lg:text-6xl font-bold leading-none tracking-tight text-[#111111] tabular-nums">
             {ukcResult.ukc >= 0 ? `+${ukcResult.ukc.toFixed(2)}` : ukcResult.ukc.toFixed(2)}
-            <span className="text-2xl font-display ml-1">M</span>
+            <span className="text-xl font-display ml-1">M</span>
           </div>
           <div
             className={`text-xs font-bold uppercase mt-2.5 flex items-center gap-1.5 ${
@@ -133,19 +144,78 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
             {ukcResult.safetyStatus === 'safe' ? (
               <>
                 <ShieldCheck className="w-4 h-4 text-[#008800]" />
-                <span>NAVEGAÇÃO LIVRE // PROFUNDIDADE TOTAL: {ukcResult.actualDepth.toFixed(2)}M</span>
+                <span>NAVEGAÇÃO LIVRE // PROF: {ukcResult.actualDepth.toFixed(2)}M</span>
               </>
             ) : ukcResult.safetyStatus === 'caution' ? (
               <>
                 <ShieldAlert className="w-4 h-4 text-[#b45309]" />
-                <span>ATENÇÃO AO FUNDO // PROFUNDIDADE: {ukcResult.actualDepth.toFixed(2)}M</span>
+                <span>ATENÇÃO // PROF: {ukcResult.actualDepth.toFixed(2)}M</span>
               </>
             ) : (
               <>
                 <ShieldAlert className="w-4 h-4 text-[#d42020]" />
-                <span>RISCO DE ENCALHAR // ÁGUA RASA PARA SEU BARCO</span>
+                <span>ÁGUA RASA PARA SEU BARCO</span>
               </>
             )}
+          </div>
+        </div>
+
+        {/* Célula 4: TEMPERATURAS (Água do Mar & Clima) com Suporte a Celsius e Fahrenheit */}
+        <div className="p-5 sm:p-6 bg-[#f8f7f4] flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#888888] flex items-center gap-1">
+              <Thermometer className="w-3.5 h-3.5 text-[#d42020]" />
+              TEMPERATURAS LOCAIS
+            </span>
+            {/* Botão de Alternância de Unidade °C / °F */}
+            <button
+              onClick={onToggleTempUnit}
+              title="Trocar entre Celsius e Fahrenheit"
+              className="text-[10px] font-bold px-1.5 py-0.5 border border-black bg-white hover:bg-black hover:text-white transition-colors cursor-pointer"
+            >
+              <span className={tempUnit === 'C' ? 'font-black underline' : 'text-[#888]'}>°C</span>
+              <span className="mx-0.5 text-[#aaa]">/</span>
+              <span className={tempUnit === 'F' ? 'font-black underline' : 'text-[#888]'}>°F</span>
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {/* Temperatura da Água */}
+            <div className="flex items-baseline justify-between border-b border-black/10 pb-1.5">
+              <div className="flex items-center gap-1.5 text-xs text-[#555]">
+                <Droplets className="w-3.5 h-3.5 text-[#0284c7]" />
+                <span>Água do Mar:</span>
+              </div>
+              <div className="text-right">
+                <span className="font-display text-2xl font-bold text-black tabular-nums">
+                  {formatTemperature(realMarineConditions?.oceanWaterTempCelsius, tempUnit)}
+                </span>
+                <span className="text-[9px] font-bold text-[#0284c7] uppercase ml-1 block">
+                  {realMarineConditions?.oceanWaterTempCelsius && realMarineConditions.oceanWaterTempCelsius >= 24 ? 'Boa para Banho' : 'Água Fresca'}
+                </span>
+              </div>
+            </div>
+
+            {/* Temperatura do Clima / Ar */}
+            <div className="flex items-baseline justify-between pt-0.5">
+              <div className="flex items-center gap-1.5 text-xs text-[#555]">
+                <CloudSun className="w-3.5 h-3.5 text-[#d97706]" />
+                <span>Clima / Ar:</span>
+              </div>
+              <div className="text-right">
+                <span className="font-display text-2xl font-bold text-black tabular-nums">
+                  {formatTemperature(realMarineConditions?.airTempCelsius, tempUnit)}
+                </span>
+                <span className="text-[9px] text-[#666] block">
+                  Sensação {formatTemperature(realMarineConditions?.apparentTempCelsius, tempUnit)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-[9px] text-[#888888] uppercase mt-2 pt-1 border-t border-black/10 flex items-center justify-between">
+            <span>{realMarineConditions?.weatherDescription || 'Tempo Estável'}</span>
+            <span>{realMarineConditions?.relativeHumidity ? `${realMarineConditions.relativeHumidity}% UR` : 'Sensor Costeiro'}</span>
           </div>
         </div>
       </div>
@@ -545,6 +615,52 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
               <p className="text-[10px] text-[#666] mt-1">
                 Calado é quanto o casco do barco afunda na água.
               </p>
+            </div>
+          </div>
+
+          {/* Bloco de Meteorologia Marinha & Temperaturas no Painel Lateral */}
+          <div className="pt-4 border-t-2 border-black/20">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="block text-[11px] font-bold uppercase tracking-wider text-[#888888] flex items-center gap-1">
+                <Thermometer className="w-3.5 h-3.5 text-[#d42020]" />
+                Condições de Superfície
+              </span>
+              <span className="text-[10px] font-bold text-black border border-black px-1 bg-white">
+                {tempUnit === 'C' ? 'CELSIUS (°C)' : 'FAHRENHEIT (°F)'}
+              </span>
+            </div>
+
+            <div className="bg-white border-2 border-black p-3 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[#666] flex items-center gap-1">
+                  <Droplets className="w-3.5 h-3.5 text-[#0284c7]" />
+                  Temperatura da Água:
+                </span>
+                <span className="font-bold text-black tabular-nums">
+                  {formatTemperature(realMarineConditions?.oceanWaterTempCelsius, tempUnit)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#666] flex items-center gap-1">
+                  <CloudSun className="w-3.5 h-3.5 text-[#d97706]" />
+                  Temperatura do Ar:
+                </span>
+                <span className="font-bold text-black tabular-nums">
+                  {formatTemperature(realMarineConditions?.airTempCelsius, tempUnit)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#666]">Sensação Térmica:</span>
+                <span className="font-bold text-[#444] tabular-nums">
+                  {formatTemperature(realMarineConditions?.apparentTempCelsius, tempUnit)}
+                </span>
+              </div>
+              {realMarineConditions?.relativeHumidity && (
+                <div className="flex items-center justify-between border-t border-black/10 pt-1.5 text-[11px]">
+                  <span className="text-[#666]">Umidade Relativa:</span>
+                  <span className="font-bold text-black">{realMarineConditions.relativeHumidity}%</span>
+                </div>
+              )}
             </div>
           </div>
 

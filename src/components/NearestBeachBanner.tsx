@@ -1,6 +1,7 @@
 import React from 'react';
 import { BeachLocation } from '../data/beaches';
-import { RealMarineConditions } from '../services/realMarineApi';
+import { RealMarineConditions, formatTemperature } from '../services/realMarineApi';
+import { TemperatureUnit } from '../types/tide';
 import {
   Compass,
   MapPin,
@@ -9,6 +10,9 @@ import {
   Waves,
   RotateCcw,
   CheckCircle,
+  Thermometer,
+  CloudSun,
+  Droplets,
 } from 'lucide-react';
 
 interface NearestBeachBannerProps {
@@ -21,6 +25,8 @@ interface NearestBeachBannerProps {
   tideHeight: number;
   tendency: 'enchente' | 'vazante' | 'estofo';
   hasRealGPS: boolean;
+  tempUnit: TemperatureUnit;
+  onToggleTempUnit: () => void;
   onRequestGPS: () => void;
   onResetToNearest: () => void;
   onOpenSearch: () => void;
@@ -36,6 +42,8 @@ export const NearestBeachBanner: React.FC<NearestBeachBannerProps> = ({
   tideHeight,
   tendency,
   hasRealGPS,
+  tempUnit,
+  onToggleTempUnit,
   onRequestGPS,
   onResetToNearest,
   onOpenSearch,
@@ -119,7 +127,7 @@ export const NearestBeachBanner: React.FC<NearestBeachBannerProps> = ({
           )}
         </div>
 
-        {/* Middle Section: Visual Tide Meter & Real Ocean Conditions */}
+        {/* Middle Section: Visual Tide Meter & Real Ocean Conditions & Temperatures */}
         <div className="flex flex-wrap items-center gap-3 py-2 px-3 border-2 border-black bg-[#f8f7f4] shadow-[2px_2px_0px_#000]">
           {/* REPRESENTAÇÃO VISUAL DA MARÉ (Mini Coluna de Água) */}
           <div className="pr-3 border-r-2 border-black/20 flex items-center gap-2.5">
@@ -170,9 +178,46 @@ export const NearestBeachBanner: React.FC<NearestBeachBannerProps> = ({
             </div>
           </div>
 
+          {/* TEMPERATURA DA ÁGUA DO MAR */}
+          <div className="pr-3 border-r-2 border-black/20">
+            <span className="block text-[10px] font-bold uppercase text-[#888888] flex items-center gap-1">
+              <Droplets className="w-3 h-3 text-[#0284c7]" />
+              TEMP. ÁGUA DO MAR
+            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-display text-xl sm:text-2xl font-bold text-black tabular-nums">
+                {formatTemperature(realMarineConditions?.oceanWaterTempCelsius, tempUnit)}
+              </span>
+              <span className="text-[9px] font-bold text-[#0284c7] uppercase">
+                {realMarineConditions?.oceanWaterTempCelsius && realMarineConditions.oceanWaterTempCelsius >= 24 ? 'AGRADÁVEL' : 'REFRESCANTE'}
+              </span>
+            </div>
+            <span className="text-[9px] text-[#888888] block">SUPERFÍCIE OCEÂNICA</span>
+          </div>
+
+          {/* CLIMA & TEMPERATURA DO AR */}
+          <div className="pr-3 border-r-2 border-black/20">
+            <span className="block text-[10px] font-bold uppercase text-[#888888] flex items-center gap-1">
+              <CloudSun className="w-3 h-3 text-[#d97706]" />
+              CLIMA & TEMPO
+            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-display text-xl sm:text-2xl font-bold text-black tabular-nums">
+                {formatTemperature(realMarineConditions?.airTempCelsius, tempUnit)}
+              </span>
+              <span className="text-[10px] font-bold text-black uppercase">
+                {realMarineConditions?.weatherDescription || 'BOM'}
+              </span>
+            </div>
+            <span className="text-[9px] text-[#888888] block">
+              SENS. {formatTemperature(realMarineConditions?.apparentTempCelsius, tempUnit)}
+              {realMarineConditions?.relativeHumidity ? ` · ${realMarineConditions.relativeHumidity}% UR` : ''}
+            </span>
+          </div>
+
           {/* Real Ocean Waves from Open-Meteo Marine API */}
           {realMarineConditions && (
-            <div className="pr-3 border-r-2 border-black/20">
+            <div className="pr-3 border-r-2 border-black/20 hidden sm:block">
               <span className="block text-[10px] font-bold uppercase text-[#888888] flex items-center gap-1">
                 <Waves className="w-3 h-3 text-black" />
                 ONDULAÇÃO REAL
@@ -186,20 +231,35 @@ export const NearestBeachBanner: React.FC<NearestBeachBannerProps> = ({
 
           {/* Direction / Wind */}
           {realMarineConditions && (
-            <div>
+            <div className="hidden md:block">
               <span className="block text-[10px] font-bold uppercase text-[#888888] flex items-center gap-1">
                 <Compass className="w-3 h-3 text-black" />
-                DIREÇÃO ONDA
+                VENTO & ONDA
               </span>
               <div className="text-xs font-bold text-black tabular-nums">
                 {realMarineConditions.waveDirectionDegrees}° ({realMarineConditions.windSpeedKmH ? `${realMarineConditions.windSpeedKmH} km/h` : 'MODERADO'})
               </div>
+              <span className="text-[9px] text-[#888888] block">RADIAL COSTEIRO</span>
             </div>
           )}
         </div>
 
-        {/* Right Section: Search Beach Button */}
+        {/* Right Section: Temperature Unit Toggle (°C / °F) & Search Beach Button */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Alternador Celsius / Fahrenheit */}
+          <button
+            onClick={onToggleTempUnit}
+            title="Alternar unidade entre Celsius (°C) e Fahrenheit (°F)"
+            className="px-2.5 py-2 border-2 border-black bg-white hover:bg-[#eeebe6] text-black text-xs font-bold uppercase flex items-center gap-1 cursor-pointer shadow-[2px_2px_0px_#000] transition-colors"
+          >
+            <Thermometer className="w-3.5 h-3.5 text-[#d42020]" />
+            <span className="font-mono">
+              <strong className={tempUnit === 'C' ? 'text-black underline' : 'text-[#888]'}>°C</strong>
+              <span className="mx-0.5 text-[#aaa]">/</span>
+              <strong className={tempUnit === 'F' ? 'text-black underline' : 'text-[#888]'}>°F</strong>
+            </span>
+          </button>
+
           <button
             onClick={onOpenSearch}
             className="px-4 py-2 bg-black hover:bg-[#333] text-white text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#000]"
@@ -212,3 +272,4 @@ export const NearestBeachBanner: React.FC<NearestBeachBannerProps> = ({
     </div>
   );
 };
+

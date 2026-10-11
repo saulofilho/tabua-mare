@@ -1,5 +1,6 @@
 import React from 'react';
-import { Wifi, WifiOff, Download } from 'lucide-react';
+import { Wifi, WifiOff, Download, Thermometer } from 'lucide-react';
+import { TemperatureUnit } from '../types/tide';
 
 interface TopBarProps {
   activeTab: 'tides' | 'map' | 'alerts' | 'offline';
@@ -9,6 +10,8 @@ interface TopBarProps {
   onOpenDownloadModal: () => void;
   timeRange: 24 | 168;
   onToggleTimeRange: (range: 24 | 168) => void;
+  tempUnit: TemperatureUnit;
+  onToggleTempUnit: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -19,6 +22,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenDownloadModal,
   timeRange,
   onToggleTimeRange,
+  tempUnit,
+  onToggleTempUnit,
 }) => {
   return (
     <header className="border-b-2 border-black bg-[#f8f7f4] px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-40">
@@ -108,6 +113,19 @@ export const TopBar: React.FC<TopBarProps> = ({
             </button>
           </div>
         )}
+
+        <button
+          onClick={onToggleTempUnit}
+          title="Alternar unidade entre Celsius (°C) e Fahrenheit (°F)"
+          className="px-2.5 py-1.5 border-2 border-black bg-white hover:bg-[#eeebe6] text-black font-mono text-xs font-bold uppercase flex items-center gap-1 cursor-pointer transition-colors"
+        >
+          <Thermometer className="w-3.5 h-3.5 text-[#d42020]" />
+          <span>
+            <strong className={tempUnit === 'C' ? 'text-black underline' : 'text-[#888]'}>°C</strong>
+            <span className="mx-0.5 text-[#aaa]">/</span>
+            <strong className={tempUnit === 'F' ? 'text-black underline' : 'text-[#888]'}>°F</strong>
+          </span>
+        </button>
 
         <button
           onClick={onToggleOfflineMode}

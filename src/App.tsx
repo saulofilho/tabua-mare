@@ -40,6 +40,7 @@ import { OfflineManagerModal } from './components/OfflineManagerModal';
 import { VesselConfigModal } from './components/VesselConfigModal';
 import { LocationSearchModal } from './components/LocationSearchModal';
 import { NavigationLogbook } from './components/NavigationLogbook';
+import { WaveWindForecastBarChart } from './components/WaveWindForecastBarChart';
 import { Download } from 'lucide-react';
 
 const DEFAULT_VESSEL: VesselProfile = {
@@ -515,6 +516,15 @@ export default function App() {
               onOpenVesselModal={() => setIsVesselModalOpen(true)}
               onOpenAlertsModal={() => setActiveTab('alerts')}
               onOpenLogbook={() => setActiveTab('logbook')}
+            />
+
+            {/* PREVISÃO DE ONDAS E VELOCIDADE DO VENTO 24H (GRÁFICO DE BARRAS RECHARTS) */}
+            <WaveWindForecastBarChart
+              station={station}
+              beachLat={selectedBeach?.lat}
+              beachLng={selectedBeach?.lng}
+              locationName={selectedBeach?.name || station.name}
+              isOfflineMode={isOfflineMode}
             />
 
             {/* REPRESENTAÇÃO VISUAL DA MARÉ (Corte Transversal & Coluna d'Água) */}

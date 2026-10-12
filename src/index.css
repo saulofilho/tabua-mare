@@ -7,7 +7,7 @@
   --bg-muted: #eeebe6;
   --ink: #111111;
   --accent: #d42020;
-  --muted: #888888;
+  --muted: #555555;
   --line: #000000;
   font-family: 'Roboto Mono', monospace;
 }
@@ -19,7 +19,7 @@
   --bg-muted: #21262d;
   --ink: #f0f6fc;
   --accent: #ff4d4d;
-  --muted: #8b949e;
+  --muted: #a0aec0;
   --line: #30363d;
   color-scheme: dark;
 }

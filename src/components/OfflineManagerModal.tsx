@@ -68,9 +68,10 @@ export const OfflineManagerModal: React.FC<OfflineManagerModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="Fechar gerenciador de mapas offline"
             className="p-1 border-2 border-black hover:bg-black hover:text-white cursor-pointer transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 

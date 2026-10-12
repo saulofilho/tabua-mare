@@ -633,10 +633,11 @@ export const NavigationLogbook: React.FC<NavigationLogbookProps> = ({
                     )}
                     <button
                       onClick={() => openEditModal(entry)}
+                      aria-label={`Editar registro ${entry.title}`}
                       className="p-1.5 border border-black hover:bg-[#eeebe6] text-black cursor-pointer"
                       title="Editar registro"
                     >
-                      <Edit2 className="w-3.5 h-3.5" />
+                      <Edit2 className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => {
@@ -644,10 +645,11 @@ export const NavigationLogbook: React.FC<NavigationLogbookProps> = ({
                           onDeleteEntry(entry.id);
                         }
                       }}
+                      aria-label={`Excluir registro ${entry.title}`}
                       className="p-1.5 border border-black hover:bg-red-50 text-red-600 cursor-pointer"
                       title="Excluir registro"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                     </button>
                   </div>
                 </div>

@@ -2,13 +2,18 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MaréSegura - Tábua de Marés e Navegação Offline</title>
     <meta name="description" content="Tábua de marés em tempo real, curva astronômica, alertas personalizados de segurança e cartas náuticas offline com cálculo de folga de quilha." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app" />
+
+    <!-- OpenGraph Metadata -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:site_name" content="MaréSegura" />
     <meta property="og:title" content="MaréSegura - Tábua de Marés e Navegação Offline" />
     <meta property="og:description" content="Tábua de marés em tempo real, curva astronômica, alertas personalizados de segurança e cartas náuticas offline com cálculo de folga de quilha." />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="MaréSegura" />
     <meta property="og:url" content="https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app" />
     <meta property="og:image" content="https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app/og-image.jpg" />
     <meta property="og:image:secure_url" content="https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app/og-image.jpg" />
@@ -24,25 +29,29 @@
     <meta name="twitter:image" content="https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app/og-image.jpg" />
     <meta name="twitter:image:alt" content="MaréSegura - Tábua de Marés em Tempo Real e Navegação Offline" />
 
-    <!-- Icons, Thumbnail & Manifest -->
-    <link rel="icon" type="image/png" sizes="64x64" href="./favicon.png" />
-    <link rel="icon" type="image/x-icon" href="./favicon.ico" />
-    <link rel="apple-touch-icon" sizes="512x512" href="./apple-touch-icon.png" />
-    <link rel="apple-touch-icon-precomposed" sizes="512x512" href="./apple-touch-icon.png" />
+    <!-- Icons, Thumbnail & PWA Manifest -->
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon-precomposed" sizes="512x512" href="/apple-touch-icon.png" />
     <link rel="image_src" href="https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app/og-image.jpg" />
-    <link rel="manifest" href="./manifest.json" />
+    <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#111111" />
 
-    <!-- Schema.org WebApplication structured data -->
+    <!-- Schema.org WebApplication Structured Data (JSON-LD) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "MaréSegura",
+      "inLanguage": "pt-BR",
       "applicationCategory": "NavigationApplication",
+      "applicationSubCategory": "Marine Navigation, Tides, Nautical Charts",
       "operatingSystem": "All",
       "description": "Tábua de marés em tempo real, curva astronômica, alertas personalizados de segurança e cartas náuticas offline com cálculo de folga de quilha.",
       "image": "https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app/og-image.jpg",
+      "featureList": "Tábua de marés em tempo real, Previsão horária de ondas e vento 24h, Folga sob a quilha (UKC), Cartas náuticas offline, Diário de bordo náutico",
       "offers": {
         "@type": "Offer",
         "price": "0",
@@ -69,6 +78,8 @@
           if (linkImg) linkImg.setAttribute('href', absImg);
           var ogUrl = document.querySelector('meta[property="og:url"]');
           if (ogUrl) ogUrl.setAttribute('content', currentUrl);
+          var canUrl = document.querySelector('link[rel="canonical"]');
+          if (canUrl) canUrl.setAttribute('href', currentUrl);
         }
       } catch (e) {}
     </script>
@@ -81,4 +92,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

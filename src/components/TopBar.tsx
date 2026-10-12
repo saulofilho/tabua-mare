@@ -68,19 +68,22 @@ export const TopBar: React.FC<TopBarProps> = ({
             e.preventDefault();
             onSelectTab('tides');
           }}
+          aria-label="MaréSegura - Início e Tábua de Marés"
           className="group flex items-center gap-2.5 hover:opacity-85 transition-opacity"
         >
           <div className="w-8 h-8 sm:w-9 sm:h-9 bg-black border-2 border-black flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
             <img
-              src="/public/apple-touch-icon.png"
-              alt="Logo MaréSegura"
+              src="/apple-touch-icon.png"
+              alt="Logotipo MaréSegura"
+              width={36}
+              height={36}
               referrerPolicy="no-referrer"
               className="w-full h-full object-contain p-0.5"
             />
           </div>
-          <span className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[#111111] uppercase">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[#111111] uppercase m-0 leading-none">
             MaréSegura
-          </span>
+          </h1>
           <span className="hidden sm:inline-block font-mono text-[10px] font-bold border-2 border-black px-2 py-0.5 tracking-normal bg-white">
             {isOfflineMode ? 'MODO OFFLINE' : 'SISTEMA ONLINE'}
           </span>
@@ -88,9 +91,11 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       {/* Navigation tabs */}
-      <nav className="flex items-center gap-1.5 sm:gap-2">
+      <nav className="flex items-center gap-1.5 sm:gap-2" aria-label="Navegação Principal">
         <button
           onClick={() => onSelectTab('tides')}
+          aria-label="Aba Tábua de Marés"
+          aria-current={activeTab === 'tides' ? 'page' : undefined}
           className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-all cursor-pointer ${
             activeTab === 'tides'
               ? 'bg-black text-[#f8f7f4]'
@@ -102,6 +107,8 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         <button
           onClick={() => onSelectTab('map')}
+          aria-label="Aba Mapa Náutico e GPS"
+          aria-current={activeTab === 'map' ? 'page' : undefined}
           className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-all cursor-pointer ${
             activeTab === 'map'
               ? 'bg-black text-[#f8f7f4]'
@@ -113,24 +120,29 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         <button
           onClick={() => onSelectTab('logbook')}
+          aria-label="Aba Diário de Navegação"
+          aria-current={activeTab === 'logbook' ? 'page' : undefined}
           className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'logbook'
               ? 'bg-black text-[#f8f7f4]'
               : 'border-2 border-black bg-white text-black hover:bg-[#eeebe6]'
           }`}
         >
-          <BookOpen className="w-3.5 h-3.5 text-[#d42020]" />
+          <BookOpen className="w-3.5 h-3.5 text-[#d42020]" aria-hidden="true" />
           <span>Diário de Navegação</span>
           {ongoingVoyagesCount > 0 && (
             <span
               className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-0.5"
               title={`${ongoingVoyagesCount} viagem em curso`}
+              aria-label={`${ongoingVoyagesCount} viagem em andamento`}
             />
           )}
         </button>
 
         <button
           onClick={() => onSelectTab('alerts')}
+          aria-label="Aba Meus Alertas"
+          aria-current={activeTab === 'alerts' ? 'page' : undefined}
           className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-all cursor-pointer ${
             activeTab === 'alerts'
               ? 'bg-black text-[#f8f7f4]'
@@ -142,6 +154,8 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         <button
           onClick={() => onSelectTab('offline')}
+          aria-label="Aba Mapas Offline"
+          aria-current={activeTab === 'offline' ? 'page' : undefined}
           className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-all cursor-pointer ${
             activeTab === 'offline'
               ? 'bg-black text-[#f8f7f4]'
@@ -155,9 +169,11 @@ export const TopBar: React.FC<TopBarProps> = ({
       {/* Actions */}
       <div className="flex items-center gap-2">
         {activeTab === 'tides' && (
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1" role="group" aria-label="Intervalo de Previsão de Maré">
             <button
               onClick={() => onToggleTimeRange(24)}
+              aria-label="Visualizar próximas 24 horas"
+              aria-pressed={timeRange === 24}
               className={`px-2.5 py-1 font-mono text-xs font-bold uppercase border-2 border-black cursor-pointer transition-colors ${
                 timeRange === 24 ? 'bg-black text-[#f8f7f4]' : 'bg-white text-black hover:bg-[#eeebe6]'
               }`}
@@ -166,6 +182,8 @@ export const TopBar: React.FC<TopBarProps> = ({
             </button>
             <button
               onClick={() => onToggleTimeRange(168)}
+              aria-label="Visualizar próximos 7 dias"
+              aria-pressed={timeRange === 168}
               className={`px-2.5 py-1 font-mono text-xs font-bold uppercase border-2 border-black cursor-pointer transition-colors ${
                 timeRange === 168 ? 'bg-black text-[#f8f7f4]' : 'bg-white text-black hover:bg-[#eeebe6]'
               }`}
@@ -177,10 +195,11 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         <button
           onClick={onToggleTempUnit}
+          aria-label="Alternar unidade de temperatura entre Celsius (°C) e Fahrenheit (°F)"
           title="Alternar unidade entre Celsius (°C) e Fahrenheit (°F)"
           className="px-2.5 py-1.5 border-2 border-black bg-white hover:bg-[#eeebe6] text-black font-mono text-xs font-bold uppercase flex items-center gap-1 cursor-pointer transition-colors"
         >
-          <Thermometer className="w-3.5 h-3.5 text-[#d42020]" />
+          <Thermometer className="w-3.5 h-3.5 text-[#d42020]" aria-hidden="true" />
           <span>
             <strong className={tempUnit === 'C' ? 'text-black underline' : 'text-[#888]'}>°C</strong>
             <span className="mx-0.5 text-[#aaa]">/</span>
@@ -191,17 +210,18 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* Tactical Dark Mode Toggle */}
         <button
           onClick={onToggleDarkMode}
+          aria-label={isDarkMode ? 'Alternar para Modo Diurno Claro' : 'Ativar Modo Noturno Tático'}
           title={isDarkMode ? 'Alternar para Modo Diurno / Claro' : 'Ativar Modo Noturno / Inversão Tática de Alta Visibilidade'}
           className="px-2.5 py-1.5 border-2 border-black bg-white hover:bg-[#eeebe6] text-black font-mono text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer transition-colors"
         >
           {isDarkMode ? (
             <>
-              <Sun className="w-3.5 h-3.5 text-amber-400" />
+              <Sun className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
               <span className="hidden sm:inline">Dia</span>
             </>
           ) : (
             <>
-              <Moon className="w-3.5 h-3.5 text-indigo-900" />
+              <Moon className="w-3.5 h-3.5 text-indigo-900" aria-hidden="true" />
               <span className="hidden sm:inline">Noturno</span>
             </>
           )}
@@ -209,17 +229,18 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         <button
           onClick={onToggleOfflineMode}
+          aria-label={isOfflineMode ? 'Desativar modo offline de teste' : 'Ativar modo offline de teste'}
           title="Alternar entre modo online e teste offline sem sinal no mar"
           className="px-2.5 py-1.5 border-2 border-black bg-white hover:bg-[#eeebe6] text-black font-mono text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer"
         >
           {isOfflineMode ? (
             <>
-              <WifiOff className="w-3.5 h-3.5 text-[#d42020]" />
+              <WifiOff className="w-3.5 h-3.5 text-[#d42020]" aria-hidden="true" />
               <span className="hidden sm:inline">Modo Sem Sinal</span>
             </>
           ) : (
             <>
-              <Wifi className="w-3.5 h-3.5 text-[#008800]" />
+              <Wifi className="w-3.5 h-3.5 text-[#008800]" aria-hidden="true" />
               <span className="hidden sm:inline">Conectado</span>
             </>
           )}
@@ -227,6 +248,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         <button
           onClick={handleShare}
+          aria-label="Compartilhar link do site com preview de imagem"
           title="Compartilhar link do site com imagem preview (WhatsApp, Telegram, Redes Sociais)"
           className={`px-3 py-1.5 border-2 border-black font-mono text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer transition-colors ${
             copiedShare
@@ -236,12 +258,12 @@ export const TopBar: React.FC<TopBarProps> = ({
         >
           {copiedShare ? (
             <>
-              <Check className="w-3.5 h-3.5 text-white" />
+              <Check className="w-3.5 h-3.5 text-white" aria-hidden="true" />
               <span>Link Copiado!</span>
             </>
           ) : (
             <>
-              <Share2 className="w-3.5 h-3.5 text-[#111]" />
+              <Share2 className="w-3.5 h-3.5 text-[#111]" aria-hidden="true" />
               <span className="hidden sm:inline">Compartilhar</span>
             </>
           )}
@@ -249,9 +271,10 @@ export const TopBar: React.FC<TopBarProps> = ({
 
         <button
           onClick={onOpenDownloadModal}
+          aria-label="Abrir modal para baixar cartas náuticas offline"
           className="px-3.5 py-1.5 bg-black hover:bg-[#333] text-[#f8f7f4] font-mono text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer shadow-none"
         >
-          <Download className="w-3.5 h-3.5" />
+          <Download className="w-3.5 h-3.5" aria-hidden="true" />
           <span>Baixar Mapas</span>
         </button>
       </div>

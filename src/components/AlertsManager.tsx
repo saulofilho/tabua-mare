@@ -280,10 +280,11 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
                   <button
                     type="button"
                     onClick={() => maritimeAudio.playSound(newSound)}
+                    aria-label="Testar reprodução deste som de alerta"
                     className="p-2 border-2 border-black bg-white hover:bg-black hover:text-white cursor-pointer"
                     title="Testar este som"
                   >
-                    <Volume2 className="w-4 h-4" />
+                    <Volume2 className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -349,10 +350,11 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
 
                 <button
                   onClick={() => handleDeleteRule(rule.id)}
+                  aria-label={`Excluir regra de alerta ${rule.title}`}
                   className="p-1 text-black hover:text-[#d42020] cursor-pointer"
                   title="Excluir alerta"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
             </div>

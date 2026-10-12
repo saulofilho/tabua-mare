@@ -49,18 +49,20 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="Fechar configuração da embarcação"
             className="p-1 border-2 border-black hover:bg-black hover:text-white cursor-pointer transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="mt-5 space-y-4 text-xs font-bold">
           <div>
-            <label className="block uppercase text-[11px] mb-1">
+            <label htmlFor="vessel-name-input" className="block uppercase text-[11px] mb-1">
               Nome da Embarcação
             </label>
             <input
+              id="vessel-name-input"
               type="text"
               required
               value={name}
@@ -72,10 +74,11 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block uppercase text-[11px] mb-1">
+              <label htmlFor="vessel-type-select" className="block uppercase text-[11px] mb-1">
                 Tipo de Embarcação
               </label>
               <select
+                id="vessel-type-select"
                 value={vesselType}
                 onChange={(e) =>
                   setVesselType(e.target.value as VesselProfile['vesselType'])
@@ -91,10 +94,11 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
             </div>
 
             <div>
-              <label className="block uppercase text-[11px] mb-1">
+              <label htmlFor="vessel-draft-input" className="block uppercase text-[11px] mb-1">
                 Calado (Profundidade Submersa) [m]
               </label>
               <input
+                id="vessel-draft-input"
                 type="number"
                 step="0.05"
                 min="0.3"
@@ -111,10 +115,11 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block uppercase text-[11px] mb-1">
+              <label htmlFor="vessel-safety-margin-input" className="block uppercase text-[11px] mb-1">
                 Folga Mínima Sob o Barco (UKC) [m]
               </label>
               <input
+                id="vessel-safety-margin-input"
                 type="number"
                 step="0.05"
                 min="0.1"
@@ -129,10 +134,11 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
             </div>
 
             <div>
-              <label className="block uppercase text-[11px] mb-1">
+              <label htmlFor="vessel-air-draft-input" className="block uppercase text-[11px] mb-1">
                 Altura Total / Mastro [m]
               </label>
               <input
+                id="vessel-air-draft-input"
                 type="number"
                 step="0.1"
                 min="1.0"

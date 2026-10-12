@@ -218,7 +218,15 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
 
           <div className="text-[9px] text-[#888888] uppercase mt-2 pt-1 border-t border-black/10 flex items-center justify-between">
             <span>{realMarineConditions?.weatherDescription || 'Tempo Estável'}</span>
-            <span>{realMarineConditions?.relativeHumidity ? `${realMarineConditions.relativeHumidity}% UR` : 'Sensor Costeiro'}</span>
+            <button
+              onClick={() => {
+                const el = document.getElementById('wave-wind-forecast-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="text-[9px] font-bold text-[#0284c7] hover:underline cursor-pointer flex items-center gap-0.5"
+            >
+              <span>Gráfico 24h Ondas/Vento ↓</span>
+            </button>
           </div>
         </div>
       </div>
@@ -685,6 +693,17 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
                   <span className="font-bold text-black">{realMarineConditions.relativeHumidity}%</span>
                 </div>
               )}
+
+              <button
+                onClick={() => {
+                  const el = document.getElementById('wave-wind-forecast-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="w-full mt-2.5 py-1.5 px-2 bg-black text-white hover:bg-[#333] text-[10px] font-bold uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#888]"
+              >
+                <Waves className="w-3.5 h-3.5 text-[#0284c7]" />
+                <span>Ver Gráfico 24h de Ondas e Ventos ↓</span>
+              </button>
             </div>
           </div>
 

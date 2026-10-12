@@ -484,10 +484,11 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
                         onClick={() =>
                           setRouteWaypoints(routeWaypoints.filter((w) => w.id !== wp.id))
                         }
+                        aria-label={`Remover ponto de rota ${wp.name}`}
                         className="text-black hover:text-[#d42020] p-1 cursor-pointer"
                         title="Remover ponto"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                       </button>
                     </div>
                   );

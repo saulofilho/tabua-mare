@@ -107,9 +107,10 @@ export const LocationSearchModal: React.FC<LocationSearchModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="Fechar busca de praias e cidades"
             className="p-1 border-2 border-black hover:bg-black hover:text-white cursor-pointer transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -119,14 +120,16 @@ export const LocationSearchModal: React.FC<LocationSearchModalProps> = ({
             <input
               type="text"
               autoFocus
+              id="beach-search-input"
+              aria-label="Digite o nome da praia ou cidade"
               placeholder="Digite o nome da praia ou cidade (ex: Copacabana, Maresias, Salvador, Jericoacoara...)"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="w-full p-3 pl-10 border-2 border-black bg-white font-bold text-sm text-black placeholder:text-[#888888] focus:outline-none"
             />
-            <Search className="w-5 h-5 text-black absolute left-3 top-3.5" />
+            <Search className="w-5 h-5 text-black absolute left-3 top-3.5" aria-hidden="true" />
             {isLoading && (
-              <Loader2 className="w-5 h-5 text-black animate-spin absolute right-3 top-3.5" />
+              <Loader2 className="w-5 h-5 text-black animate-spin absolute right-3 top-3.5" aria-hidden="true" />
             )}
           </div>
         </div>

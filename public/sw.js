@@ -1,14 +1,17 @@
 // MaréSegura Service Worker - Navegação & Suporte Offline
-const CACHE_NAME = 'maresegura-v2';
+const CACHE_NAME = 'maresegura-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/favicon.svg',
   '/favicon.png',
   '/favicon.ico',
   '/apple-touch-icon.png',
+  '/apple-touch-icon-180.png',
   '/icon-192.png',
   '/og-image.jpg',
+  '/og-image.webp',
 ];
 
 self.addEventListener('install', (event) => {

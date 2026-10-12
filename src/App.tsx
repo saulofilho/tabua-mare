@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
 import {
   ActiveAlertNotification,
   OfflineRegionStatus,
@@ -34,14 +34,21 @@ import { NearestBeachBanner } from './components/NearestBeachBanner';
 import { TideDashboard } from './components/TideDashboard';
 import { VisualTideGauge } from './components/VisualTideGauge';
 import { TideCurveCanvas } from './components/TideCurveCanvas';
-import { NauticalMapView } from './components/NauticalMapView';
-import { AlertsManager } from './components/AlertsManager';
-import { OfflineManagerModal } from './components/OfflineManagerModal';
-import { VesselConfigModal } from './components/VesselConfigModal';
-import { LocationSearchModal } from './components/LocationSearchModal';
-import { NavigationLogbook } from './components/NavigationLogbook';
-import { WaveWindForecastBarChart } from './components/WaveWindForecastBarChart';
+import {
+  RadarMapSkeleton,
+  WaveWindChartSkeleton,
+  TabModuleSkeleton,
+} from './components/TacticalSkeletons';
 import { Download } from 'lucide-react';
+
+// Code-splitting via React.lazy() para carregamento sob demanda e performance WebAudit
+const NauticalMapView = lazy(() => import('./components/NauticalMapView'));
+const WaveWindForecastBarChart = lazy(() => import('./components/WaveWindForecastBarChart'));
+const NavigationLogbook = lazy(() => import('./components/NavigationLogbook'));
+const AlertsManager = lazy(() => import('./components/AlertsManager'));
+const OfflineManagerModal = lazy(() => import('./components/OfflineManagerModal'));
+const VesselConfigModal = lazy(() => import('./components/VesselConfigModal'));
+const LocationSearchModal = lazy(() => import('./components/LocationSearchModal'));
 
 const DEFAULT_VESSEL: VesselProfile = {
   name: 'Albatroz',
@@ -519,13 +526,15 @@ export default function App() {
             />
 
             {/* PREVISÃO DE ONDAS E VELOCIDADE DO VENTO 24H (GRÁFICO DE BARRAS RECHARTS) */}
-            <WaveWindForecastBarChart
-              station={station}
-              beachLat={selectedBeach?.lat}
-              beachLng={selectedBeach?.lng}
-              locationName={selectedBeach?.name || station.name}
-              isOfflineMode={isOfflineMode}
-            />
+            <Suspense fallback={<WaveWindChartSkeleton />}>
+              <WaveWindForecastBarChart
+                station={station}
+                beachLat={selectedBeach?.lat}
+                beachLng={selectedBeach?.lng}
+                locationName={selectedBeach?.name || station.name}
+                isOfflineMode={isOfflineMode}
+              />
+            </Suspense>
 
             {/* REPRESENTAÇÃO VISUAL DA MARÉ (Corte Transversal & Coluna d'Água) */}
             <VisualTideGauge
@@ -547,47 +556,67 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 2: Carta Náutica & GPS */}
+        {/* Tab 2: Carta Náutica & GPS (Leaflet code-split) */}
         {activeTab === 'map' && (
           <div>
-            <NauticalMapView
-              station={station}
-              vessel={vessel}
-              currentTideHeight={status.currentHeight}
-              isOfflineMode={isOfflineMode}
-              onOpenDownloadModal={() => setIsOfflineModalOpen(true)}
-            />
+            <Suspense fallback={<RadarMapSkeleton />}>
+              <NauticalMapView
+                station={station}
+                vessel={vessel}
+                currentTideHeight={status.currentHeight}
+                isOfflineMode={isOfflineMode}
+                onOpenDownloadModal={() => setIsOfflineModalOpen(true)}
+              />
+            </Suspense>
           </div>
         )}
 
         {/* Tab 3: Diário de Navegação */}
         {activeTab === 'logbook' && (
           <div>
-            <NavigationLogbook
-              entries={logbookEntries}
-              onAddEntry={handleAddLogEntry}
-              onUpdateEntry={handleUpdateLogEntry}
-              onDeleteEntry={handleDeleteLogEntry}
-              currentStation={station}
-              currentStatus={status}
-              currentVessel={vessel}
-              realMarineConditions={marineConditions}
-              tempUnit={tempUnit}
-              activeBeachName={selectedBeach.name}
-            />
+            <Suspense
+              fallback={
+                <TabModuleSkeleton
+                  title="Diário de Bordo Náutico"
+                  subtitle="Carregando livro de registro e travessias..."
+                />
+              }
+            >
+              <NavigationLogbook
+                entries={logbookEntries}
+                onAddEntry={handleAddLogEntry}
+                onUpdateEntry={handleUpdateLogEntry}
+                onDeleteEntry={handleDeleteLogEntry}
+                currentStation={station}
+                currentStatus={status}
+                currentVessel={vessel}
+                realMarineConditions={marineConditions}
+                tempUnit={tempUnit}
+                activeBeachName={selectedBeach.name}
+              />
+            </Suspense>
           </div>
         )}
 
         {/* Tab 4: Alertas */}
         {activeTab === 'alerts' && (
           <div>
-            <AlertsManager
-              rules={rules}
-              onUpdateRules={handleUpdateRules}
-              activeAlerts={activeAlerts}
-              currentStatus={status}
-              vessel={vessel}
-            />
+            <Suspense
+              fallback={
+                <TabModuleSkeleton
+                  title="Central de Alertas & Notificações"
+                  subtitle="Sincronizando regras de segurança e sensores de folga sob a quilha..."
+                />
+              }
+            >
+              <AlertsManager
+                rules={rules}
+                onUpdateRules={handleUpdateRules}
+                activeAlerts={activeAlerts}
+                currentStatus={status}
+                vessel={vessel}
+              />
+            </Suspense>
           </div>
         )}
 
@@ -707,31 +736,43 @@ export default function App() {
         <div>ONDAS AO VIVO: OPEN-METEO MARINE // VERSÃO 2.5</div>
       </footer>
 
-      {/* Modals */}
-      <VesselConfigModal
-        isOpen={isVesselModalOpen}
-        onClose={() => setIsVesselModalOpen(false)}
-        vessel={vessel}
-        onSave={handleSaveVessel}
-      />
+      {/* Modais carregados sob demanda via React.lazy */}
+      {isVesselModalOpen && (
+        <Suspense fallback={null}>
+          <VesselConfigModal
+            isOpen={isVesselModalOpen}
+            onClose={() => setIsVesselModalOpen(false)}
+            vessel={vessel}
+            onSave={handleSaveVessel}
+          />
+        </Suspense>
+      )}
 
-      <OfflineManagerModal
-        isOpen={isOfflineModalOpen}
-        onClose={() => setIsOfflineModalOpen(false)}
-        stations={TIDE_STATIONS}
-        offlineStatuses={offlineStatuses}
-        onRefreshStatuses={refreshOfflineStatuses}
-        isOfflineMode={isOfflineMode}
-        onToggleOfflineMode={handleToggleOfflineMode}
-      />
+      {isOfflineModalOpen && (
+        <Suspense fallback={null}>
+          <OfflineManagerModal
+            isOpen={isOfflineModalOpen}
+            onClose={() => setIsOfflineModalOpen(false)}
+            stations={TIDE_STATIONS}
+            offlineStatuses={offlineStatuses}
+            onRefreshStatuses={refreshOfflineStatuses}
+            isOfflineMode={isOfflineMode}
+            onToggleOfflineMode={handleToggleOfflineMode}
+          />
+        </Suspense>
+      )}
 
-      <LocationSearchModal
-        isOpen={isSearchModalOpen}
-        onClose={() => setIsSearchModalOpen(false)}
-        userCoords={userCoords}
-        onSelectBeach={handleSelectBeach}
-        onSelectCustomLocation={handleSelectCustomLocation}
-      />
+      {isSearchModalOpen && (
+        <Suspense fallback={null}>
+          <LocationSearchModal
+            isOpen={isSearchModalOpen}
+            onClose={() => setIsSearchModalOpen(false)}
+            userCoords={userCoords}
+            onSelectBeach={handleSelectBeach}
+            onSelectCustomLocation={handleSelectCustomLocation}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

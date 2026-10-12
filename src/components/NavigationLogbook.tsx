@@ -1173,3 +1173,5 @@ export const NavigationLogbook: React.FC<NavigationLogbookProps> = ({
     </div>
   );
 };
+
+export default NavigationLogbook;

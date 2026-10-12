@@ -534,3 +534,5 @@ export const WaveWindForecastBarChart: React.FC<WaveWindForecastBarChartProps> =
     </div>
   );
 };
+
+export default WaveWindForecastBarChart;

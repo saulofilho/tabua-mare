@@ -175,3 +175,5 @@ export const OfflineManagerModal: React.FC<OfflineManagerModalProps> = ({
     </div>
   );
 };
+
+export default OfflineManagerModal;

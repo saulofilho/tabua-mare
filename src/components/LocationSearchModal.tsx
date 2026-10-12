@@ -214,3 +214,5 @@ export const LocationSearchModal: React.FC<LocationSearchModalProps> = ({
     </div>
   );
 };
+
+export default LocationSearchModal;

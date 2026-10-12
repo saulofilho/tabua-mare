@@ -364,3 +364,5 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
     </div>
   );
 };
+
+export default AlertsManager;

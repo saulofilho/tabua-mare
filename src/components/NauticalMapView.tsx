@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { NauticalHazard, TideStation, VesselProfile, Waypoint } from '../types/tide';
 import { calculateUKC } from '../utils/tideHarmonics';
 import {
@@ -137,6 +138,19 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
       mapInstanceRef.current.setView([station.lat, station.lng], 13);
     }
   }, [station]);
+
+  // Limpeza de recursos e instâncias do Leaflet ao desmontar o componente
+  useEffect(() => {
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        markersLayerRef.current = null;
+        routeLayerRef.current = null;
+        vesselMarkerRef.current = null;
+      }
+    };
+  }, []);
 
   // Marcadores de Perigos Náuticos (Pedras, baixios e faróis)
   useEffect(() => {
@@ -573,3 +587,5 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
     </div>
   );
 };
+
+export default NauticalMapView;

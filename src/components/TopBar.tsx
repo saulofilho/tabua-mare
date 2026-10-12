@@ -73,11 +73,12 @@ export const TopBar: React.FC<TopBarProps> = ({
         >
           <div className="w-8 h-8 sm:w-9 sm:h-9 bg-black border-2 border-black flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
             <img
-              src="/apple-touch-icon.png"
+              src="/favicon.svg"
               alt="Logotipo MaréSegura"
               width={36}
               height={36}
-              referrerPolicy="no-referrer"
+              loading="eager"
+              decoding="async"
               className="w-full h-full object-contain p-0.5"
             />
           </div>

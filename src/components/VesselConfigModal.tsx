@@ -177,3 +177,5 @@ export const VesselConfigModal: React.FC<VesselConfigModalProps> = ({
     </div>
   );
 };
+
+export default VesselConfigModal;

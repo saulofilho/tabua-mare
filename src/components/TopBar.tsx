@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Wifi, WifiOff, Download, Thermometer, BookOpen, Share2, Check, Moon, Sun } from 'lucide-react';
+import { Wifi, WifiOff, Download, Thermometer, BookOpen, Share2, Check, Moon, Sun, Compass } from 'lucide-react';
 import { TemperatureUnit } from '../types/tide';
 
 interface TopBarProps {
-  activeTab: 'tides' | 'map' | 'logbook' | 'alerts' | 'offline';
-  onSelectTab: (tab: 'tides' | 'map' | 'logbook' | 'alerts' | 'offline') => void;
+  activeTab: 'tides' | 'map' | 'logbook' | 'alerts' | 'offline' | 'converter';
+  onSelectTab: (tab: 'tides' | 'map' | 'logbook' | 'alerts' | 'offline' | 'converter') => void;
   isOfflineMode: boolean;
   onToggleOfflineMode: () => void;
   onOpenDownloadModal: () => void;
@@ -151,6 +151,20 @@ export const TopBar: React.FC<TopBarProps> = ({
           }`}
         >
           Meus Alertas
+        </button>
+
+        <button
+          onClick={() => onSelectTab('converter')}
+          aria-label="Aba Conversor de Unidades Náuticas"
+          aria-current={activeTab === 'converter' ? 'page' : undefined}
+          className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'converter'
+              ? 'bg-black text-[#f8f7f4]'
+              : 'border-2 border-black bg-white text-black hover:bg-[#eeebe6]'
+          }`}
+        >
+          <Compass className="w-3.5 h-3.5 text-[#d42020]" aria-hidden="true" />
+          <span>Conversor Náutico</span>
         </button>
 
         <button

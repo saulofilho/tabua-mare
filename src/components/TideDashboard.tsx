@@ -44,6 +44,7 @@ interface TideDashboardProps {
   onOpenVesselModal: () => void;
   onOpenAlertsModal: () => void;
   onOpenLogbook?: () => void;
+  onOpenConverter?: () => void;
 }
 
 export const TideDashboard: React.FC<TideDashboardProps> = ({
@@ -59,6 +60,7 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
   onOpenVesselModal,
   onOpenAlertsModal,
   onOpenLogbook,
+  onOpenConverter,
 }) => {
   const [viewMode, setViewMode] = useState<'timeline' | 'cards' | 'table'>('timeline');
 
@@ -645,6 +647,29 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
                 </button>
                 <p className="text-[10px] text-[#666] mt-1">
                   Registre partidas/chegadas com as cotas exatas de maré.
+                </p>
+              </div>
+            )}
+
+            {onOpenConverter && (
+              <div>
+                <span className="block text-[11px] font-bold uppercase tracking-wider text-[#888888] mb-1.5">
+                  Conversão Rápida de Unidades Náuticas
+                </span>
+                <button
+                  onClick={onOpenConverter}
+                  className="w-full border-2 border-black p-2.5 text-xs font-bold bg-[#f8f7f4] hover:bg-black hover:text-white transition-colors text-black text-left flex items-center justify-between cursor-pointer shadow-[2px_2px_0px_#000]"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Compass className="w-3.5 h-3.5 text-[#d42020]" />
+                    <span>CONVERSOR (NÓS ↔ KM/H, MN, HPA)</span>
+                  </div>
+                  <span className="text-[10px] uppercase underline">CALCULAR →</span>
+                </button>
+                <p className="text-[10px] text-[#666] mt-1">
+                  {realMarineConditions?.windSpeedKmH
+                    ? `Vento atual: ${(realMarineConditions.windSpeedKmH / 1.852).toFixed(1)} nós (${realMarineConditions.windSpeedKmH} km/h).`
+                    : 'Converta nós para km/h, milhas náuticas e pressão barométrica instantaneamente.'}
                 </p>
               </div>
             )}

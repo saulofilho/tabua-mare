@@ -39,6 +39,7 @@ import {
   WaveWindChartSkeleton,
   TabModuleSkeleton,
 } from './components/TacticalSkeletons';
+import { analytics } from './services/analytics';
 import { Download } from 'lucide-react';
 
 // Code-splitting via React.lazy() para carregamento sob demanda e performance WebAudit
@@ -46,6 +47,7 @@ const NauticalMapView = lazy(() => import('./components/NauticalMapView'));
 const WaveWindForecastBarChart = lazy(() => import('./components/WaveWindForecastBarChart'));
 const NavigationLogbook = lazy(() => import('./components/NavigationLogbook'));
 const AlertsManager = lazy(() => import('./components/AlertsManager'));
+const NauticalUnitConverter = lazy(() => import('./components/NauticalUnitConverter'));
 const OfflineManagerModal = lazy(() => import('./components/OfflineManagerModal'));
 const VesselConfigModal = lazy(() => import('./components/VesselConfigModal'));
 const LocationSearchModal = lazy(() => import('./components/LocationSearchModal'));
@@ -110,7 +112,7 @@ const INITIAL_RULES: TideAlertRule[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'tides' | 'map' | 'logbook' | 'alerts' | 'offline'>('tides');
+  const [activeTab, setActiveTab] = useState<'tides' | 'map' | 'logbook' | 'alerts' | 'offline' | 'converter'>('tides');
   const [station, setStation] = useState<TideStation>(TIDE_STATIONS[0]);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(getOfflineModeActive());
@@ -459,11 +461,42 @@ export default function App() {
     const next = !isOfflineMode;
     setIsOfflineMode(next);
     setOfflineModeActive(next);
+    analytics.trackEvent('offline', 'mode_toggled', next ? 'offline' : 'online');
   };
 
   const refreshOfflineStatuses = () => {
     setOfflineStatuses(loadOfflineRegions());
   };
+
+  // Atualização dinâmica de Título (SEO) e rastreamento de métricas SPA
+  useEffect(() => {
+    let title = 'MaréSegura - Tábua de Marés e Navegação Offline';
+    const loc = selectedBeach?.name || station.name;
+
+    switch (activeTab) {
+      case 'tides':
+        title = `Maré em ${loc} (${station.state}) - Tábua de Marés | MaréSegura`;
+        break;
+      case 'map':
+        title = `Carta Náutica & GPS Offline - ${loc} | MaréSegura`;
+        break;
+      case 'logbook':
+        title = 'Diário de Bordo Náutico & Histórico de Navegação | MaréSegura';
+        break;
+      case 'alerts':
+        title = 'Central de Alertas & Folga sob a Quilha (UKC) | MaréSegura';
+        break;
+      case 'offline':
+        title = 'Gerenciador de Cartas e Mapas Offline | MaréSegura';
+        break;
+      case 'converter':
+        title = 'Conversor de Unidades Náuticas (Nós, Milhas, Pressão) | MaréSegura';
+        break;
+    }
+
+    document.title = title;
+    analytics.trackPageView(`/?tab=${activeTab}`, title);
+  }, [activeTab, station, selectedBeach]);
 
   return (
     <div className="min-h-screen bg-[#f8f7f4] text-[#111111] font-mono border-4 sm:border-8 border-black flex flex-col justify-between selection:bg-[#d42020] selection:text-white">
@@ -523,6 +556,7 @@ export default function App() {
               onOpenVesselModal={() => setIsVesselModalOpen(true)}
               onOpenAlertsModal={() => setActiveTab('alerts')}
               onOpenLogbook={() => setActiveTab('logbook')}
+              onOpenConverter={() => setActiveTab('converter')}
             />
 
             {/* PREVISÃO DE ONDAS E VELOCIDADE DO VENTO 24H (GRÁFICO DE BARRAS RECHARTS) */}
@@ -685,13 +719,36 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* Tab 5: Conversor de Unidades Náuticas */}
+        {activeTab === 'converter' && (
+          <Suspense
+            fallback={
+              <TabModuleSkeleton
+                title="Conversor de Unidades Náuticas"
+                subtitle="Calculando conversões de velocidade, distância, pressão barométrica e profundidade..."
+              />
+            }
+          >
+            <NauticalUnitConverter
+              currentWindSpeedKnots={
+                marineConditions?.windSpeedKmH
+                  ? Math.round((marineConditions.windSpeedKmH / 1.852) * 10) / 10
+                  : undefined
+              }
+              currentPressureHpa={1013.25}
+              onNavigateToTides={() => setActiveTab('tides')}
+            />
+          </Suspense>
+        )}
       </div>
 
       {/* Mobile Fixed Bottom Nav */}
-      <div className="md:hidden sticky bottom-0 z-40 bg-[#f8f7f4] border-t-2 border-black p-1 grid grid-cols-4 gap-1 text-center font-mono">
+      <div className="md:hidden sticky bottom-0 z-40 bg-[#f8f7f4] border-t-2 border-black p-1 grid grid-cols-5 gap-1 text-center font-mono">
         <button
           onClick={() => setActiveTab('tides')}
-          className={`py-2 text-[10px] font-bold uppercase cursor-pointer ${
+          aria-label="Aba Tábua de Marés"
+          className={`py-2 text-[9px] font-bold uppercase cursor-pointer ${
             activeTab === 'tides' ? 'bg-black text-white' : 'text-black hover:bg-[#eeebe6]'
           }`}
         >
@@ -699,15 +756,26 @@ export default function App() {
         </button>
         <button
           onClick={() => setActiveTab('map')}
-          className={`py-2 text-[10px] font-bold uppercase cursor-pointer ${
+          aria-label="Aba Mapa Náutico"
+          className={`py-2 text-[9px] font-bold uppercase cursor-pointer ${
             activeTab === 'map' ? 'bg-black text-white' : 'text-black hover:bg-[#eeebe6]'
           }`}
         >
           MAPA
         </button>
         <button
+          onClick={() => setActiveTab('converter')}
+          aria-label="Aba Conversor Náutico"
+          className={`py-2 text-[9px] font-bold uppercase cursor-pointer ${
+            activeTab === 'converter' ? 'bg-[#d42020] text-white' : 'text-black hover:bg-[#eeebe6]'
+          }`}
+        >
+          CONVERSOR
+        </button>
+        <button
           onClick={() => setActiveTab('alerts')}
-          className={`py-2 text-[10px] font-bold uppercase cursor-pointer ${
+          aria-label="Aba Alertas"
+          className={`py-2 text-[9px] font-bold uppercase cursor-pointer ${
             activeTab === 'alerts' ? 'bg-black text-white' : 'text-black hover:bg-[#eeebe6]'
           }`}
         >
@@ -715,7 +783,8 @@ export default function App() {
         </button>
         <button
           onClick={() => setActiveTab('offline')}
-          className={`py-2 text-[10px] font-bold uppercase cursor-pointer ${
+          aria-label="Aba Offline"
+          className={`py-2 text-[9px] font-bold uppercase cursor-pointer ${
             activeTab === 'offline' ? 'bg-black text-white' : 'text-black hover:bg-[#eeebe6]'
           }`}
         >

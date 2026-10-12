@@ -1,6 +1,10 @@
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { analytics } from './services/analytics';
+
+// Inicializar monitoramento de performance (Core Web Vitals) e métricas
+analytics.init();
 
 createRoot(document.getElementById('root')!).render(<App />);
 

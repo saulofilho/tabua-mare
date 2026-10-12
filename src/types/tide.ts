@@ -131,3 +131,38 @@ export interface OfflineRegionStatus {
 }
 
 export type TemperatureUnit = 'C' | 'F';
+
+export interface NavigationLogEntry {
+  id: string;
+  createdAt: number;
+  date: string; // YYYY-MM-DD
+  title: string;
+  vesselName: string;
+  vesselType?: 'veleiro' | 'lancha' | 'pesqueiro' | 'catamara' | 'escuna';
+  status: 'ongoing' | 'completed';
+
+  // Localidades
+  departureLocation: string;
+  arrivalLocation?: string;
+
+  // Saída
+  departureTime: string; // HH:MM
+  departureTideHeight: number; // metros
+  departureTideTendency?: 'enchente' | 'vazante' | 'estofo';
+
+  // Chegada
+  arrivalTime?: string; // HH:MM
+  arrivalTideHeight?: number; // metros
+  arrivalTideTendency?: 'enchente' | 'vazante' | 'estofo';
+
+  // Dados náuticos e meteorológicos registrados
+  waterTempCelsius?: number;
+  airTempCelsius?: number;
+  waveHeightMeters?: number;
+  windSpeedKmH?: number;
+  vesselDraft?: number;
+  ukcClearance?: number;
+  crewCount?: number;
+  distanceNm?: number;
+  notes?: string;
+}

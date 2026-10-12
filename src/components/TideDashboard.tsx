@@ -28,6 +28,7 @@ import {
   Thermometer,
   Droplets,
   CloudSun,
+  BookOpen,
 } from 'lucide-react';
 
 interface TideDashboardProps {
@@ -42,6 +43,7 @@ interface TideDashboardProps {
   onToggleTempUnit: () => void;
   onOpenVesselModal: () => void;
   onOpenAlertsModal: () => void;
+  onOpenLogbook?: () => void;
 }
 
 export const TideDashboard: React.FC<TideDashboardProps> = ({
@@ -56,6 +58,7 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
   onToggleTempUnit,
   onOpenVesselModal,
   onOpenAlertsModal,
+  onOpenLogbook,
 }) => {
   const [viewMode, setViewMode] = useState<'timeline' | 'cards' | 'table'>('timeline');
 
@@ -616,6 +619,27 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
                 Calado é quanto o casco do barco afunda na água.
               </p>
             </div>
+
+            {onOpenLogbook && (
+              <div>
+                <span className="block text-[11px] font-bold uppercase tracking-wider text-[#888888] mb-1.5">
+                  Diário de Navegação & Livro de Bordo
+                </span>
+                <button
+                  onClick={onOpenLogbook}
+                  className="w-full border-2 border-black p-2.5 text-xs font-bold bg-white hover:bg-black hover:text-white transition-colors text-black text-left flex items-center justify-between cursor-pointer shadow-[2px_2px_0px_#000]"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-[#d42020]" />
+                    <span>LIVRO DE BORDO ({status.currentHeight.toFixed(2)}M)</span>
+                  </div>
+                  <span className="text-[10px] uppercase underline">ABRIR →</span>
+                </button>
+                <p className="text-[10px] text-[#666] mt-1">
+                  Registre partidas/chegadas com as cotas exatas de maré.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Bloco de Meteorologia Marinha & Temperaturas no Painel Lateral */}

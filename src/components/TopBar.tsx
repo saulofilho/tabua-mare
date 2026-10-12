@@ -1,10 +1,10 @@
-import React from 'react';
-import { Wifi, WifiOff, Download, Thermometer } from 'lucide-react';
+import React, { useState } from 'react';
+import { Wifi, WifiOff, Download, Thermometer, BookOpen, Share2, Check, Moon, Sun } from 'lucide-react';
 import { TemperatureUnit } from '../types/tide';
 
 interface TopBarProps {
-  activeTab: 'tides' | 'map' | 'alerts' | 'offline';
-  onSelectTab: (tab: 'tides' | 'map' | 'alerts' | 'offline') => void;
+  activeTab: 'tides' | 'map' | 'logbook' | 'alerts' | 'offline';
+  onSelectTab: (tab: 'tides' | 'map' | 'logbook' | 'alerts' | 'offline') => void;
   isOfflineMode: boolean;
   onToggleOfflineMode: () => void;
   onOpenDownloadModal: () => void;
@@ -12,6 +12,9 @@ interface TopBarProps {
   onToggleTimeRange: (range: 24 | 168) => void;
   tempUnit: TemperatureUnit;
   onToggleTempUnit: () => void;
+  ongoingVoyagesCount?: number;
+  isDarkMode: boolean;
+  onToggleDarkMode: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -24,7 +27,37 @@ export const TopBar: React.FC<TopBarProps> = ({
   onToggleTimeRange,
   tempUnit,
   onToggleTempUnit,
+  ongoingVoyagesCount = 0,
+  isDarkMode,
+  onToggleDarkMode,
 }) => {
+  const [copiedShare, setCopiedShare] = useState(false);
+
+  const handleShare = async () => {
+    const shareData = {
+      title: 'MaréSegura - Tábua de Marés e Navegação Offline',
+      text: 'Confira as tábuas de marés em tempo real, curva astronômica, cartas náuticas e diário de navegação no MaréSegura!',
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (e) {
+        // User cancelled or failed, fallback to copy
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2500);
+    } catch {
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2500);
+    }
+  };
   return (
     <header className="border-b-2 border-black bg-[#f8f7f4] px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-40">
       {/* Brand Zone */}
@@ -35,10 +68,20 @@ export const TopBar: React.FC<TopBarProps> = ({
             e.preventDefault();
             onSelectTab('tides');
           }}
-          className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[#111111] uppercase flex items-center gap-2 hover:opacity-80 transition-opacity"
+          className="group flex items-center gap-2.5 hover:opacity-85 transition-opacity"
         >
-          <span>MaréSegura</span>
-          <span className="font-mono text-[10px] font-bold border-2 border-black px-2 py-0.5 tracking-normal bg-white">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 bg-black border-2 border-black flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
+            <img
+              src="/public/apple-touch-icon.png"
+              alt="Logo MaréSegura"
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-contain p-0.5"
+            />
+          </div>
+          <span className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[#111111] uppercase">
+            MaréSegura
+          </span>
+          <span className="hidden sm:inline-block font-mono text-[10px] font-bold border-2 border-black px-2 py-0.5 tracking-normal bg-white">
             {isOfflineMode ? 'MODO OFFLINE' : 'SISTEMA ONLINE'}
           </span>
         </a>
@@ -66,6 +109,24 @@ export const TopBar: React.FC<TopBarProps> = ({
           }`}
         >
           Mapa Náutico & GPS
+        </button>
+
+        <button
+          onClick={() => onSelectTab('logbook')}
+          className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeTab === 'logbook'
+              ? 'bg-black text-[#f8f7f4]'
+              : 'border-2 border-black bg-white text-black hover:bg-[#eeebe6]'
+          }`}
+        >
+          <BookOpen className="w-3.5 h-3.5 text-[#d42020]" />
+          <span>Diário de Navegação</span>
+          {ongoingVoyagesCount > 0 && (
+            <span
+              className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse ml-0.5"
+              title={`${ongoingVoyagesCount} viagem em curso`}
+            />
+          )}
         </button>
 
         <button
@@ -127,6 +188,25 @@ export const TopBar: React.FC<TopBarProps> = ({
           </span>
         </button>
 
+        {/* Tactical Dark Mode Toggle */}
+        <button
+          onClick={onToggleDarkMode}
+          title={isDarkMode ? 'Alternar para Modo Diurno / Claro' : 'Ativar Modo Noturno / Inversão Tática de Alta Visibilidade'}
+          className="px-2.5 py-1.5 border-2 border-black bg-white hover:bg-[#eeebe6] text-black font-mono text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer transition-colors"
+        >
+          {isDarkMode ? (
+            <>
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Dia</span>
+            </>
+          ) : (
+            <>
+              <Moon className="w-3.5 h-3.5 text-indigo-900" />
+              <span className="hidden sm:inline">Noturno</span>
+            </>
+          )}
+        </button>
+
         <button
           onClick={onToggleOfflineMode}
           title="Alternar entre modo online e teste offline sem sinal no mar"
@@ -141,6 +221,28 @@ export const TopBar: React.FC<TopBarProps> = ({
             <>
               <Wifi className="w-3.5 h-3.5 text-[#008800]" />
               <span className="hidden sm:inline">Conectado</span>
+            </>
+          )}
+        </button>
+
+        <button
+          onClick={handleShare}
+          title="Compartilhar link do site com imagem preview (WhatsApp, Telegram, Redes Sociais)"
+          className={`px-3 py-1.5 border-2 border-black font-mono text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer transition-colors ${
+            copiedShare
+              ? 'bg-[#008800] text-white border-[#008800]'
+              : 'bg-white hover:bg-[#eeebe6] text-black'
+          }`}
+        >
+          {copiedShare ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-white" />
+              <span>Link Copiado!</span>
+            </>
+          ) : (
+            <>
+              <Share2 className="w-3.5 h-3.5 text-[#111]" />
+              <span className="hidden sm:inline">Compartilhar</span>
             </>
           )}
         </button>

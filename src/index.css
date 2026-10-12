@@ -3,11 +3,31 @@
 
 :root {
   --bg: #f8f7f4;
+  --bg-card: #ffffff;
+  --bg-muted: #eeebe6;
   --ink: #111111;
   --accent: #d42020;
   --muted: #888888;
   --line: #000000;
   font-family: 'Roboto Mono', monospace;
+}
+
+/* Tactical Dark Mode (Inversão Tática Noturna de Alta Visibilidade) */
+.dark {
+  --bg: #0d1117;
+  --bg-card: #161b22;
+  --bg-muted: #21262d;
+  --ink: #f0f6fc;
+  --accent: #ff4d4d;
+  --muted: #8b949e;
+  --line: #30363d;
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--ink);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .font-display {
@@ -34,11 +54,11 @@
 }
 
 .tactical-btn:hover {
-  background: #333333;
+  opacity: 0.9;
 }
 
 .tactical-btn-outline {
-  background: white;
+  background: var(--bg-card);
   color: var(--ink);
   border: 2px solid var(--line);
   font-family: 'Roboto Mono', monospace;
@@ -48,7 +68,7 @@
 }
 
 .tactical-btn-outline:hover {
-  background: #eeebe6;
+  background: var(--bg-muted);
 }
 
 /* Custom leaflet map adjustments for Tactical Maritime theme */
@@ -58,8 +78,17 @@
   border: 2px solid #000000;
 }
 
+.dark .leaflet-container {
+  background: #090d13 !important;
+  border-color: #30363d !important;
+}
+
 .leaflet-tile {
   filter: contrast(1.1) saturate(0.8);
+}
+
+.dark .leaflet-tile {
+  filter: brightness(0.65) invert(1) contrast(3) hue-rotate(200deg) saturate(0.35) !important;
 }
 
 .leaflet-control-zoom a {
@@ -70,8 +99,19 @@
   font-weight: bold !important;
 }
 
+.dark .leaflet-control-zoom a {
+  background-color: #161b22 !important;
+  color: #f0f6fc !important;
+  border-color: #30363d !important;
+}
+
 .leaflet-control-zoom a:hover {
   background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+.dark .leaflet-control-zoom a:hover {
+  background-color: #30363d !important;
   color: #ffffff !important;
 }
 
@@ -83,9 +123,92 @@
   box-shadow: 4px 4px 0px #000000 !important;
 }
 
+.dark .leaflet-popup-content-wrapper {
+  background: #161b22 !important;
+  color: #f0f6fc !important;
+  border: 2px solid #30363d !important;
+  box-shadow: 4px 4px 0px #000000 !important;
+}
+
 .leaflet-popup-tip {
   background: #f8f7f4 !important;
   border: 1px solid #000000;
+}
+
+.dark .leaflet-popup-tip {
+  background: #161b22 !important;
+  border: 1px solid #30363d;
+}
+
+/* Tactical Inversion Overrides for Dark Mode when .dark is present */
+.dark .bg-\[\#f8f7f4\] {
+  background-color: #0d1117 !important;
+}
+
+.dark .bg-white {
+  background-color: #161b22 !important;
+}
+
+.dark .bg-\[\#ffffff\] {
+  background-color: #161b22 !important;
+}
+
+.dark .bg-\[\#eeebe6\] {
+  background-color: #21262d !important;
+}
+
+.dark .bg-\[\#eae7e1\] {
+  background-color: #21262d !important;
+}
+
+.dark .bg-black {
+  background-color: #05070a !important;
+  color: #f0f6fc !important;
+}
+
+.dark .hover\:bg-\[\#eeebe6\]:hover {
+  background-color: #21262d !important;
+}
+
+.dark .hover\:bg-\[\#333\]:hover {
+  background-color: #1f242c !important;
+}
+
+.dark .text-\[\#111111\],
+.dark .text-black {
+  color: #f0f6fc !important;
+}
+
+.dark .text-\[\#888888\],
+.dark .text-\[\#888\],
+.dark .text-gray-500,
+.dark .text-gray-600 {
+  color: #8b949e !important;
+}
+
+.dark .border-black {
+  border-color: #30363d !important;
+}
+
+.dark .border-b-black {
+  border-bottom-color: #30363d !important;
+}
+
+.dark .border-t-black {
+  border-top-color: #30363d !important;
+}
+
+.dark .border-r-black {
+  border-right-color: #30363d !important;
+}
+
+.dark .border-l-black {
+  border-left-color: #30363d !important;
+}
+
+.dark .border-gray-200,
+.dark .border-gray-300 {
+  border-color: #30363d !important;
 }
 
 /* Custom scrollbars */
@@ -94,9 +217,9 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #f8f7f4;
-  border-left: 1px solid #000;
+  background: var(--bg);
+  border-left: 1px solid var(--line);
 }
 ::-webkit-scrollbar-thumb {
-  background: #111111;
+  background: var(--ink);
 }

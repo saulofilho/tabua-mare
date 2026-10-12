@@ -6,9 +6,11 @@ import {
   TideStation,
   VesselProfile,
   TemperatureUnit,
+  NavigationLogEntry,
 } from './types/tide';
 import { TIDE_STATIONS } from './data/tideStations';
 import { REAL_BRAZILIAN_BEACHES, BeachLocation } from './data/beaches';
+import { INITIAL_LOGBOOK_ENTRIES } from './data/defaultLogbook';
 import {
   getCurrentTideStatus,
   findTideExtremes,
@@ -37,6 +39,7 @@ import { AlertsManager } from './components/AlertsManager';
 import { OfflineManagerModal } from './components/OfflineManagerModal';
 import { VesselConfigModal } from './components/VesselConfigModal';
 import { LocationSearchModal } from './components/LocationSearchModal';
+import { NavigationLogbook } from './components/NavigationLogbook';
 import { Download } from 'lucide-react';
 
 const DEFAULT_VESSEL: VesselProfile = {
@@ -99,7 +102,7 @@ const INITIAL_RULES: TideAlertRule[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'tides' | 'map' | 'alerts' | 'offline'>('tides');
+  const [activeTab, setActiveTab] = useState<'tides' | 'map' | 'logbook' | 'alerts' | 'offline'>('tides');
   const [station, setStation] = useState<TideStation>(TIDE_STATIONS[0]);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(getOfflineModeActive());
@@ -124,6 +127,35 @@ export default function App() {
       return next;
     });
   };
+
+  // Dark Mode (Inversão Tática Noturna de Alta Visibilidade)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('maresegura_theme');
+      if (saved) return saved === 'dark';
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('maresegura_theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('maresegura_theme', 'light');
+      }
+    } catch {
+      // ignore
+    }
+  }, [isDarkMode]);
+
+  const handleToggleDarkMode = useCallback(() => {
+    setIsDarkMode((prev) => !prev);
+  }, []);
 
   // User GPS coordinates (Real device position)
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number }>({
@@ -167,6 +199,52 @@ export default function App() {
   const [offlineStatuses, setOfflineStatuses] = useState<Record<string, OfflineRegionStatus>>(
     loadOfflineRegions()
   );
+
+  // Diário de Navegação (Navigation Logbook) state
+  const [logbookEntries, setLogbookEntries] = useState<NavigationLogEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem('maresegura_logbook');
+      return saved ? JSON.parse(saved) : INITIAL_LOGBOOK_ENTRIES;
+    } catch {
+      return INITIAL_LOGBOOK_ENTRIES;
+    }
+  });
+
+  const handleAddLogEntry = (entry: NavigationLogEntry) => {
+    setLogbookEntries((prev) => {
+      const updated = [entry, ...prev];
+      try {
+        localStorage.setItem('maresegura_logbook', JSON.stringify(updated));
+      } catch (err) {
+        console.error('Erro salvando diário:', err);
+      }
+      return updated;
+    });
+  };
+
+  const handleUpdateLogEntry = (entry: NavigationLogEntry) => {
+    setLogbookEntries((prev) => {
+      const updated = prev.map((item) => (item.id === entry.id ? entry : item));
+      try {
+        localStorage.setItem('maresegura_logbook', JSON.stringify(updated));
+      } catch (err) {
+        console.error('Erro atualizando diário:', err);
+      }
+      return updated;
+    });
+  };
+
+  const handleDeleteLogEntry = (id: string) => {
+    setLogbookEntries((prev) => {
+      const updated = prev.filter((item) => item.id !== id);
+      try {
+        localStorage.setItem('maresegura_logbook', JSON.stringify(updated));
+      } catch (err) {
+        console.error('Erro excluindo diário:', err);
+      }
+      return updated;
+    });
+  };
 
   // Detect Real Device Geolocation on Mount
   const handleRequestGPS = useCallback(() => {
@@ -393,6 +471,9 @@ export default function App() {
           onToggleTimeRange={setTimeRange}
           tempUnit={tempUnit}
           onToggleTempUnit={handleToggleTempUnit}
+          ongoingVoyagesCount={logbookEntries.filter((e) => e.status === 'ongoing').length}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={handleToggleDarkMode}
         />
 
         {/* COMPONENTE SEMPRE NO TOPO: PRAIA EM DESTAQUE E AVISO DA MAIS PRÓXIMA */}
@@ -433,6 +514,7 @@ export default function App() {
               onToggleTempUnit={handleToggleTempUnit}
               onOpenVesselModal={() => setIsVesselModalOpen(true)}
               onOpenAlertsModal={() => setActiveTab('alerts')}
+              onOpenLogbook={() => setActiveTab('logbook')}
             />
 
             {/* REPRESENTAÇÃO VISUAL DA MARÉ (Corte Transversal & Coluna d'Água) */}
@@ -468,7 +550,25 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 3: Alertas */}
+        {/* Tab 3: Diário de Navegação */}
+        {activeTab === 'logbook' && (
+          <div>
+            <NavigationLogbook
+              entries={logbookEntries}
+              onAddEntry={handleAddLogEntry}
+              onUpdateEntry={handleUpdateLogEntry}
+              onDeleteEntry={handleDeleteLogEntry}
+              currentStation={station}
+              currentStatus={status}
+              currentVessel={vessel}
+              realMarineConditions={marineConditions}
+              tempUnit={tempUnit}
+              activeBeachName={selectedBeach.name}
+            />
+          </div>
+        )}
+
+        {/* Tab 4: Alertas */}
         {activeTab === 'alerts' && (
           <div>
             <AlertsManager

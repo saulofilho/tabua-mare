@@ -42,5 +42,37 @@
       "type": "image/png",
       "purpose": "any"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tábua de Marés",
+      "short_name": "Marés",
+      "description": "Consultar tábuas de marés astronômicas do Brasil",
+      "url": "/?tab=tides",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mapa Náutico & GPS",
+      "short_name": "Mapa",
+      "description": "Cartas náuticas eletrônicas com sinalização marítima",
+      "url": "/?tab=map",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Conversor Náutico",
+      "short_name": "Conversor",
+      "description": "Conversão de nós para km/h, milhas e pressão",
+      "url": "/?tab=converter",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.jpg",
+      "sizes": "1200x630",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Painel de Marés e Condições Marítimas em Tempo Real"
+    }
   ]
 }

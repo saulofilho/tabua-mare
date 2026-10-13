@@ -30,6 +30,7 @@ import {
   CloudSun,
   BookOpen,
 } from 'lucide-react';
+import { WeeklyTideStatsChart } from './WeeklyTideStatsChart';
 
 interface TideDashboardProps {
   station: TideStation;
@@ -108,6 +109,15 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
               <span>MARÉ ESTÁVEL (ESTOFO)</span>
             )}
           </div>
+          <button
+            onClick={() => {
+              const el = document.getElementById('weekly-tide-stats-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="text-[9px] font-bold text-[#0284c7] hover:underline cursor-pointer flex items-center gap-0.5 mt-2.5"
+          >
+            <span>Ver Estatísticas Semanais (7 Dias) ↓</span>
+          </button>
         </div>
 
         {/* Célula 2: Próxima Virada da Maré */}
@@ -754,6 +764,11 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
             </p>
           </div>
         </div>
+      </div>
+
+      {/* SEÇÃO DE ESTATÍSTICAS SEMANAIS DA MARÉ COM RECHARTS (VARIAÇÕES ACUMULADAS) */}
+      <div className="border-b-2 border-black bg-white p-5 sm:p-6" id="weekly-tide-stats-section">
+        <WeeklyTideStatsChart station={station} />
       </div>
     </div>
   );

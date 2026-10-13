@@ -1,5 +1,17 @@
 import React, { useState } from 'react';
-import { Wifi, WifiOff, Download, Thermometer, BookOpen, Share2, Check, Moon, Sun, Compass } from 'lucide-react';
+import {
+  Wifi,
+  WifiOff,
+  Download,
+  Thermometer,
+  BookOpen,
+  Share2,
+  Check,
+  Moon,
+  Sun,
+  Compass,
+  AlertOctagon,
+} from 'lucide-react';
 import { TemperatureUnit } from '../types/tide';
 
 interface TopBarProps {
@@ -8,11 +20,13 @@ interface TopBarProps {
   isOfflineMode: boolean;
   onToggleOfflineMode: () => void;
   onOpenDownloadModal: () => void;
+  onOpenSOSModal: () => void;
   timeRange: 24 | 168;
   onToggleTimeRange: (range: 24 | 168) => void;
   tempUnit: TemperatureUnit;
   onToggleTempUnit: () => void;
   ongoingVoyagesCount?: number;
+  activeAlertsCount?: number;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
 }
@@ -23,34 +37,57 @@ export const TopBar: React.FC<TopBarProps> = ({
   isOfflineMode,
   onToggleOfflineMode,
   onOpenDownloadModal,
+  onOpenSOSModal,
   timeRange,
   onToggleTimeRange,
   tempUnit,
   onToggleTempUnit,
   ongoingVoyagesCount = 0,
+  activeAlertsCount = 0,
   isDarkMode,
   onToggleDarkMode,
 }) => {
   const [copiedShare, setCopiedShare] = useState(false);
 
   const handleShare = async () => {
-    const shareData = {
+    const shareUrl = window.location.href;
+    const shareData: ShareData = {
       title: 'MaréSegura - Tábua de Marés e Navegação Offline',
       text: 'Confira as tábuas de marés em tempo real, curva astronômica, cartas náuticas e diário de navegação no MaréSegura!',
-      url: window.location.href,
+      url: shareUrl,
     };
 
     if (navigator.share) {
       try {
+        // Tenta anexar o arquivo da imagem para enviar o thumbnail diretamente em apps como WhatsApp e Telegram
+        if (navigator.canShare && typeof fetch === 'function') {
+          try {
+            const imgRes = await fetch('/og-image.jpg');
+            if (imgRes.ok) {
+              const blob = await imgRes.blob();
+              const file = new File([blob], 'maresegura-thumb.jpg', { type: 'image/jpeg' });
+              if (navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                  ...shareData,
+                  files: [file],
+                });
+                return;
+              }
+            }
+          } catch {
+            // Continua com shareData normal se fetch da imagem falhar
+          }
+        }
+
         await navigator.share(shareData);
         return;
       } catch (e) {
-        // User cancelled or failed, fallback to copy
+        // Usuário cancelou ou navegador não suportou, fallback para copiar URL
       }
     }
 
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(shareUrl);
       setCopiedShare(true);
       setTimeout(() => setCopiedShare(false), 2500);
     } catch {
@@ -144,13 +181,21 @@ export const TopBar: React.FC<TopBarProps> = ({
           onClick={() => onSelectTab('alerts')}
           aria-label="Aba Meus Alertas"
           aria-current={activeTab === 'alerts' ? 'page' : undefined}
-          className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-all cursor-pointer ${
+          className={`px-3 py-1.5 font-mono text-xs font-bold uppercase transition-all cursor-pointer flex items-center gap-1.5 ${
             activeTab === 'alerts'
               ? 'bg-black text-[#f8f7f4]'
               : 'border-2 border-black bg-white text-black hover:bg-[#eeebe6]'
           }`}
         >
-          Meus Alertas
+          <span>Meus Alertas</span>
+          {activeAlertsCount > 0 && (
+            <span
+              className="bg-[#d42020] text-white px-1.5 py-0.2 text-[10px] font-bold animate-pulse"
+              title={`${activeAlertsCount} alerta(s) de segurança ativo(s)`}
+            >
+              {activeAlertsCount}
+            </span>
+          )}
         </button>
 
         <button
@@ -282,6 +327,17 @@ export const TopBar: React.FC<TopBarProps> = ({
               <span className="hidden sm:inline">Compartilhar</span>
             </>
           )}
+        </button>
+
+        {/* Botão Sinalizar SOS (Emergência Náutica) */}
+        <button
+          onClick={onOpenSOSModal}
+          aria-label="Sinalizar SOS de Emergência e Gerar Mensagem de Resgate com GPS"
+          title="Sinalizar socorro náutico de emergência com coordenadas GPS atuais e embarcação"
+          className="px-3 py-1.5 bg-[#d42020] hover:bg-[#b01010] text-white font-mono text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer border-2 border-black shadow-[2px_2px_0px_#000] transition-colors"
+        >
+          <AlertOctagon className="w-3.5 h-3.5 text-white animate-pulse" aria-hidden="true" />
+          <span className="font-extrabold tracking-wide">Sinalizar SOS</span>
         </button>
 
         <button

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ActiveAlertNotification,
   AlertType,
@@ -7,7 +7,28 @@ import {
   VesselProfile,
 } from '../types/tide';
 import { maritimeAudio } from '../utils/audioAlerts';
-import { AlertTriangle, Bell, CheckCircle, Plus, Trash2, Volume2, Info } from 'lucide-react';
+import {
+  alertNotificationService,
+  NotificationSettings,
+} from '../services/alertNotificationService';
+import {
+  AlertTriangle,
+  Bell,
+  BellRing,
+  CheckCircle,
+  Plus,
+  Trash2,
+  Volume2,
+  VolumeX,
+  Info,
+  Radio,
+  ShieldCheck,
+  ShieldAlert,
+  Wifi,
+  Smartphone,
+  Zap,
+  Loader2,
+} from 'lucide-react';
 
 interface AlertsManagerProps {
   rules: TideAlertRule[];
@@ -24,8 +45,19 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
   currentStatus,
   vessel,
 }) => {
-  const [notificationPermission, setNotificationPermission] = useState<string>(
-    typeof Notification !== 'undefined' ? Notification.permission : 'default'
+  const [notificationPermission, setNotificationPermission] = useState<
+    NotificationPermission | 'unsupported'
+  >(alertNotificationService.getPermission());
+
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(
+    alertNotificationService.getSettings()
+  );
+
+  const [testFeedback, setTestFeedback] = useState<string | null>(null);
+  const [isPushSupported] = useState<boolean>(alertNotificationService.isPushSupported());
+  const [isSubscribingPush, setIsSubscribingPush] = useState<boolean>(false);
+  const [pushInfo, setPushInfo] = useState<any>(() =>
+    alertNotificationService.getSavedPushSubscriptionInfo()
   );
 
   const [isCreatingRule, setIsCreatingRule] = useState<boolean>(false);
@@ -34,15 +66,89 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
   const [newThreshold, setNewThreshold] = useState<number>(0.6);
   const [newSound, setNewSound] = useState<'sonar' | 'foghorn' | 'shipbell' | 'danger'>('danger');
 
-  const requestNotificationPerm = async () => {
-    if (typeof Notification !== 'undefined') {
-      try {
-        const perm = await Notification.requestPermission();
-        setNotificationPermission(perm);
-      } catch {
-        // ignore
+  // Atualiza status de permissão e inscrição Push caso mude
+  useEffect(() => {
+    setNotificationPermission(alertNotificationService.getPermission());
+    if (alertNotificationService.isPushSupported()) {
+      alertNotificationService.getPushSubscription().then((sub) => {
+        if (sub) {
+          const info = alertNotificationService.getSavedPushSubscriptionInfo();
+          setPushInfo(info || { endpoint: sub.endpoint, subscribedAt: Date.now() });
+        }
+      });
+    }
+  }, []);
+
+  const handleRequestPermission = async () => {
+    const perm = await alertNotificationService.requestPermission();
+    setNotificationPermission(perm);
+    setNotificationSettings(alertNotificationService.getSettings());
+  };
+
+  const handleToggleSetting = (key: keyof NotificationSettings, value: boolean | number) => {
+    const updated = alertNotificationService.updateSettings({ [key]: value });
+    setNotificationSettings(updated);
+  };
+
+  const handleSendTestNotification = async () => {
+    setTestFeedback(null);
+    if (notificationPermission !== 'granted') {
+      const perm = await alertNotificationService.requestPermission();
+      setNotificationPermission(perm);
+      if (perm !== 'granted') {
+        setTestFeedback('Permissão de notificações não foi concedida pelo navegador.');
+        return;
       }
     }
+
+    const ok = await alertNotificationService.sendTestNotification();
+    if (ok) {
+      setTestFeedback('Disparado! Verifique a notificação e o sinal sonoro.');
+    } else {
+      setTestFeedback('Alerta de teste enviado via sirene sonora.');
+    }
+
+    setTimeout(() => {
+      setTestFeedback(null);
+    }, 4000);
+  };
+
+  const handleTogglePushSubscription = async () => {
+    setTestFeedback(null);
+    setIsSubscribingPush(true);
+    try {
+      if (notificationSettings.pushEnabled) {
+        await alertNotificationService.unsubscribeFromPush();
+        setPushInfo(null);
+        setNotificationSettings(alertNotificationService.getSettings());
+        setTestFeedback('Inscrição Web Push desativada com sucesso.');
+      } else {
+        const res = await alertNotificationService.subscribeToPush();
+        setNotificationPermission(alertNotificationService.getPermission());
+        setNotificationSettings(alertNotificationService.getSettings());
+        if (res.success && res.subscription) {
+          setPushInfo(res.subscription);
+          setTestFeedback('Web Push ativado! Alertas críticos serão recebidos mesmo com o navegador fechado.');
+        } else {
+          setTestFeedback(res.error || 'Não foi possível registrar a inscrição push.');
+        }
+      }
+    } finally {
+      setIsSubscribingPush(false);
+      setTimeout(() => {
+        setTestFeedback(null);
+      }, 5000);
+    }
+  };
+
+  const handleSendTestPushNotification = async () => {
+    setTestFeedback(null);
+    const res = await alertNotificationService.sendTestPushNotification();
+    setNotificationPermission(alertNotificationService.getPermission());
+    setTestFeedback(res.message);
+    setTimeout(() => {
+      setTestFeedback(null);
+    }, 5000);
   };
 
   const handleToggleRule = (ruleId: string) => {
@@ -85,6 +191,10 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
       operator = 'greater_than';
       unit = 'nós';
       desc = `Dispara quando a correnteza estimada for maior que ${newThreshold.toFixed(1)} nós.`;
+    } else if (newType === 'excessive_wind') {
+      operator = 'greater_than';
+      unit = 'nós';
+      desc = `Dispara quando a velocidade do vento exceder ${newThreshold.toFixed(1)} nós.`;
     }
 
     const created: TideAlertRule = {
@@ -122,49 +232,287 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
 
   return (
     <div className="p-5 sm:p-6 bg-white border-b-2 border-black space-y-6 font-mono">
-      {/* Faixa de Alertas Ativos */}
+      {/* 1. FAIXA DE ALERTAS ATIVOS (activeAlerts) */}
       {activeAlerts.length > 0 ? (
         <div className="border-2 border-[#d42020] bg-[#fff5f5] p-4 shadow-[3px_3px_0px_#d42020]">
-          <div className="flex items-center gap-2 mb-2 text-[#d42020] font-bold text-xs uppercase">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>ALERTAS DE SEGURANÇA EMITIDOS AGORA ({activeAlerts.length})</span>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2 text-[#d42020] font-bold text-xs uppercase">
+              <AlertTriangle className="w-4 h-4 shrink-0 animate-pulse" />
+              <span>ALERTAS DE SEGURANÇA EMITIDOS AGORA ({activeAlerts.length})</span>
+            </div>
+            {notificationSettings.enabled && notificationPermission === 'granted' && (
+              <span className="text-[10px] font-bold bg-[#d42020] text-white px-2 py-0.5 uppercase flex items-center gap-1">
+                <Radio className="w-3 h-3 animate-spin" />
+                NOTIFICAÇÕES EM SEGUNDO PLANO ATIVAS
+              </span>
+            )}
           </div>
+
           <div className="space-y-2">
-            {activeAlerts.map((alt) => (
-              <div
-                key={alt.id}
-                className="border-2 border-black bg-white p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-              >
-                <div>
-                  <div className="font-bold text-black uppercase flex items-center gap-2">
-                    <span>{alt.title}</span>
-                    <span className="bg-[#d42020] text-white px-1.5 py-0.2 text-[10px]">
-                      {alt.value}
-                    </span>
-                  </div>
-                  <div className="text-[#666] text-[11px] mt-1">{alt.message}</div>
-                </div>
-                <button
-                  onClick={() => maritimeAudio.playDangerAlarm()}
-                  className="px-3 py-1 bg-black text-white hover:bg-[#333] text-[11px] font-bold uppercase flex items-center gap-1.5 shrink-0 cursor-pointer"
+            {activeAlerts.map((alt) => {
+              const rule = rules.find((r) => r.id === alt.ruleId);
+              return (
+                <div
+                  key={alt.id}
+                  className="border-2 border-black bg-white p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                 >
-                  <Volume2 className="w-3.5 h-3.5 text-[#d42020]" />
-                  <span>TESTAR ALARME</span>
-                </button>
-              </div>
-            ))}
+                  <div>
+                    <div className="font-bold text-black uppercase flex items-center gap-2">
+                      <span>{alt.title}</span>
+                      <span className="bg-[#d42020] text-white px-1.5 py-0.2 text-[10px]">
+                        {alt.value}
+                      </span>
+                    </div>
+                    <div className="text-[#666] text-[11px] mt-1">{alt.message}</div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => alertNotificationService.notifyAlert(alt, rule, true)}
+                      className="px-3 py-1.5 bg-[#d42020] hover:bg-black text-white text-[11px] font-bold uppercase flex items-center gap-1.5 cursor-pointer border border-black shadow-[2px_2px_0px_#000]"
+                      title="Disparar aviso sonoro e notificação no navegador imediatamente"
+                    >
+                      <BellRing className="w-3.5 h-3.5" />
+                      <span>DISPARAR AVISO</span>
+                    </button>
+
+                    <button
+                      onClick={() => maritimeAudio.playSound(rule?.soundType || 'danger')}
+                      className="px-3 py-1.5 bg-black text-white hover:bg-[#333] text-[11px] font-bold uppercase flex items-center gap-1.5 cursor-pointer border border-black"
+                      title="Ouvir som deste alarme"
+                    >
+                      <Volume2 className="w-3.5 h-3.5 text-white" />
+                      <span>OUVIR SOM</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : (
-        <div className="border-2 border-black bg-[#f8f7f4] p-3 flex items-center justify-between text-xs font-bold">
+        <div className="border-2 border-black bg-[#f8f7f4] p-3.5 flex items-center justify-between text-xs font-bold">
           <div className="flex items-center gap-2 text-black">
             <CheckCircle className="w-4 h-4 text-[#008800] shrink-0" />
             <span>SITUAÇÃO NORMAL // NENHUM ALERTA DISPARADO NO MOMENTO</span>
           </div>
+          {notificationSettings.enabled && notificationPermission === 'granted' && (
+            <span className="text-[10px] text-[#666] font-bold uppercase hidden sm:inline">
+              Vigia em segundo plano ativa
+            </span>
+          )}
         </div>
       )}
 
-      {/* Cabeçalho de Regras e Botão Novo Alerta */}
+      {/* 2. PAINEL TÁTICO: NOTIFICAÇÕES & WEB PUSH API (SEGUNDO PLANO E NAVEGADOR FECHADO) */}
+      <div className="border-2 border-black bg-[#f8f7f4] p-4 sm:p-5 shadow-[3px_3px_0px_#000] space-y-4">
+        {/* Notificações em Segundo Plano */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b-2 border-black">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Bell className="w-4 h-4 text-black" />
+              <span className="font-bold uppercase text-xs">
+                NOTIFICAÇÕES DO NAVEGADOR (NOTIFICATION API)
+              </span>
+              <span
+                className={`px-2 py-0.5 text-[10px] font-bold uppercase border border-black ${
+                  notificationPermission === 'granted'
+                    ? 'bg-[#008800] text-white'
+                    : notificationPermission === 'denied'
+                    ? 'bg-[#d42020] text-white'
+                    : 'bg-[#eab308] text-black'
+                }`}
+              >
+                {notificationPermission === 'granted'
+                  ? 'PERMISSÃO CONCEDIDA'
+                  : notificationPermission === 'denied'
+                  ? 'BLOQUEADO NO NAVEGADOR'
+                  : 'PERMISSÃO PENDENTE'}
+              </span>
+            </div>
+            <p className="text-[11px] text-[#666] mt-1">
+              Dispara avisos sonoros marítimos e notificações visuais baseados na lista de alertas ativos quando o navegador estiver minimizado ou com outra aba aberta.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {notificationPermission !== 'granted' && (
+              <button
+                onClick={handleRequestPermission}
+                className="px-3.5 py-1.5 bg-[#111111] hover:bg-black text-white text-xs font-bold uppercase border-2 border-black cursor-pointer shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5"
+              >
+                ATIVAR NO NAVEGADOR
+              </button>
+            )}
+
+            <button
+              onClick={handleSendTestNotification}
+              className="px-3 py-1.5 bg-white hover:bg-[#eee] text-black text-xs font-bold uppercase border-2 border-black cursor-pointer shadow-[2px_2px_0px_#000] flex items-center gap-1.5 transition-colors"
+              title="Dispara uma notificação de demonstração e sinal sonoro imediatamente"
+            >
+              <BellRing className="w-3.5 h-3.5 text-[#d42020]" />
+              <span>TESTAR NOTIFICAÇÃO</span>
+            </button>
+          </div>
+        </div>
+
+        {/* MÓDULO WEB PUSH NOTIFICATIONS API (NAVEGADOR FECHADO) */}
+        <div className="bg-white border-2 border-black p-3.5 sm:p-4 shadow-[2px_2px_0px_#000]">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-black">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Radio className="w-4 h-4 text-[#0066cc]" />
+                <span className="font-bold uppercase text-xs tracking-wide text-black">
+                  WEB PUSH NOTIFICATIONS API (NAVEGADOR FECHADO)
+                </span>
+                <span
+                  className={`px-2 py-0.5 text-[10px] font-bold uppercase border border-black ${
+                    notificationSettings.pushEnabled
+                      ? 'bg-[#008800] text-white'
+                      : !isPushSupported
+                      ? 'bg-[#888] text-white'
+                      : 'bg-[#eee] text-black'
+                  }`}
+                >
+                  {notificationSettings.pushEnabled
+                    ? 'PUSH ATIVO (24/7)'
+                    : !isPushSupported
+                    ? 'PUSH NÃO SUPORTADO'
+                    : 'PUSH DESATIVADO'}
+                </span>
+                {notificationSettings.pushEnabled && (
+                  <span className="px-2 py-0.5 text-[9px] font-bold uppercase bg-[#e0f2fe] text-[#0369a1] border border-[#0284c7]">
+                    SERVICE WORKER VIGIA
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-[#444] mt-1.5 leading-relaxed">
+                Utiliza a <strong>API de Push do Service Worker (PushManager)</strong>. Permite receber alertas críticos da MaréSegura (maré extrema, ventania &gt; 25 nós e correnteza perigosa) mesmo se o navegador estiver <strong>completamente fechado</strong> ou o aparelho em repouso.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              {isPushSupported && (
+                <button
+                  onClick={handleTogglePushSubscription}
+                  disabled={isSubscribingPush}
+                  className={`px-3.5 py-1.5 text-xs font-bold uppercase border-2 border-black cursor-pointer shadow-[2px_2px_0px_#000] flex items-center gap-1.5 transition-colors ${
+                    notificationSettings.pushEnabled
+                      ? 'bg-[#fff] hover:bg-[#fee2e2] text-[#d42020]'
+                      : 'bg-[#0066cc] hover:bg-[#0052a3] text-white'
+                  }`}
+                >
+                  {isSubscribingPush ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>CONFIGURANDO...</span>
+                    </>
+                  ) : notificationSettings.pushEnabled ? (
+                    <>
+                      <VolumeX className="w-3.5 h-3.5" />
+                      <span>DESATIVAR PUSH</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>ATIVAR WEB PUSH</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              <button
+                onClick={handleSendTestPushNotification}
+                className="px-3 py-1.5 bg-[#d42020] hover:bg-[#b01a1a] text-white text-xs font-bold uppercase border-2 border-black cursor-pointer shadow-[2px_2px_0px_#000] flex items-center gap-1.5 transition-colors"
+                title="Dispara uma notificação de alerta crítico via Service Worker com vibração e botões de ação"
+              >
+                <Radio className="w-3.5 h-3.5 animate-pulse" />
+                <span>TESTAR PUSH CRÍTICO</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Detalhes da Subscrição Push */}
+          {pushInfo && notificationSettings.pushEnabled && (
+            <div className="mt-2.5 pt-2 border-t border-dashed border-[#ccc] flex flex-wrap items-center justify-between gap-2 text-[10px] text-[#555]">
+              <div className="flex items-center gap-1.5 truncate max-w-full">
+                <Wifi className="w-3 h-3 text-[#008800] shrink-0" />
+                <span className="font-semibold">Endpoint Push:</span>
+                <span className="font-mono truncate bg-[#f0f0f0] px-1 py-0.5 border border-[#ddd]">
+                  {pushInfo.endpoint ? pushInfo.endpoint.slice(0, 48) + '...' : 'Subscrição local ativa'}
+                </span>
+              </div>
+              <span className="text-[#888]">
+                Ativo desde {new Date(pushInfo.subscribedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Feedback de Operação */}
+        {testFeedback && (
+          <div className="p-2.5 bg-white border-2 border-black text-xs font-bold text-[#008800] flex items-center gap-2 shadow-[2px_2px_0px_#000]">
+            <CheckCircle className="w-4 h-4 shrink-0" />
+            <span>{testFeedback}</span>
+          </div>
+        )}
+
+        {/* Configurações Adicionais de Notificação & Push */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <label className="flex items-center justify-between p-3 bg-white border-2 border-black cursor-pointer shadow-[2px_2px_0px_#000]">
+            <div>
+              <span className="font-bold block uppercase text-[11px]">Avisos do Navegador</span>
+              <span className="text-[10px] text-[#666]">Pop-ups da aba ativa</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={notificationSettings.enabled}
+              onChange={(e) => handleToggleSetting('enabled', e.target.checked)}
+              className="w-4 h-4 accent-black cursor-pointer"
+            />
+          </label>
+
+          <label className="flex items-center justify-between p-3 bg-white border-2 border-black cursor-pointer shadow-[2px_2px_0px_#000]">
+            <div>
+              <span className="font-bold block uppercase text-[11px]">Sinais Sonoros</span>
+              <span className="text-[10px] text-[#666]">Sirene/sonar via áudio</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={notificationSettings.soundEnabled}
+              onChange={(e) => handleToggleSetting('soundEnabled', e.target.checked)}
+              className="w-4 h-4 accent-black cursor-pointer"
+            />
+          </label>
+
+          <label className="flex items-center justify-between p-3 bg-white border-2 border-black cursor-pointer shadow-[2px_2px_0px_#000]">
+            <div>
+              <span className="font-bold block uppercase text-[11px]">Somente em Segundo Plano</span>
+              <span className="text-[10px] text-[#666]">Apenas se a aba estiver oculta</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={notificationSettings.backgroundOnly}
+              onChange={(e) => handleToggleSetting('backgroundOnly', e.target.checked)}
+              className="w-4 h-4 accent-black cursor-pointer"
+            />
+          </label>
+
+          <label className="flex items-center justify-between p-3 bg-white border-2 border-black cursor-pointer shadow-[2px_2px_0px_#000]">
+            <div>
+              <span className="font-bold block uppercase text-[11px]">Push: Apenas Críticos</span>
+              <span className="text-[10px] text-[#666]">Filtra apenas perigo severo</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={notificationSettings.criticalOnlyPush}
+              onChange={(e) => handleToggleSetting('criticalOnlyPush', e.target.checked)}
+              className="w-4 h-4 accent-black cursor-pointer"
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* 3. CABEÇALHO DE REGRAS E BOTÃO NOVO ALERTA */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b-2 border-black">
           <div>
@@ -172,23 +520,14 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
               Configuração de Avisos Preventivos
             </span>
             <h3 className="font-display text-2xl font-bold uppercase text-black">
-              Meus Alertas e Notificações de Maré
+              Meus Alertas e Regras de Segurança
             </h3>
             <p className="text-xs text-[#666] mt-0.5">
-              Defina quando o sistema deve avisar com sinais sonoros e alertas visuais
+              Defina os limites de maré, folga de quilha e correntes para monitoramento contínuo
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {notificationPermission !== 'granted' && (
-              <button
-                onClick={requestNotificationPerm}
-                className="px-3 py-1.5 border-2 border-black bg-white hover:bg-[#eeebe6] text-black text-xs font-bold uppercase cursor-pointer"
-              >
-                ATIVAR NOTIFICAÇÕES NO NAVEGADOR
-              </button>
-            )}
-
             <button
               onClick={() => setIsCreatingRule(!isCreatingRule)}
               className="px-3.5 py-1.5 bg-black hover:bg-[#333] text-white text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#000]"
@@ -233,6 +572,7 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
                     if (t === 'low_tide') setNewThreshold(0.6);
                     if (t === 'ukc_clearance') setNewThreshold(0.5);
                     if (t === 'strong_current') setNewThreshold(2.5);
+                    if (t === 'excessive_wind') setNewThreshold(25);
                   }}
                   className="w-full p-2 border-2 border-black bg-white font-bold cursor-pointer"
                 >
@@ -241,13 +581,14 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
                   <option value="ukc_clearance">Espaço Mínimo Sob o Barco (Folga da Quilha)</option>
                   <option value="spring_tide">Maré de Sizígia (Lua Cheia ou Nova)</option>
                   <option value="strong_current">Correnteza Forte (Velocidade do Fluxo)</option>
+                  <option value="excessive_wind">Vento Excessivo (Velocidade do Vento)</option>
                 </select>
               </div>
 
               {newType !== 'spring_tide' && (
                 <div>
                   <label className="block font-bold uppercase text-[11px] mb-1">
-                    Valor Limite ({newType === 'strong_current' ? 'Nós' : 'Metros'})
+                    Valor Limite ({newType === 'strong_current' || newType === 'excessive_wind' ? 'Nós' : 'Metros'})
                   </label>
                   <input
                     type="number"
@@ -308,7 +649,7 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
           </form>
         )}
 
-        {/* Lista de Regras Configuradas */}
+        {/* 4. LISTA DE REGRAS CONFIGURADAS */}
         <div className="space-y-3">
           {rules.map((rule) => (
             <div

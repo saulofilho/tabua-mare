@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 
 # Sitemap oficial MaréSegura
-Sitemap: https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app/sitemap.xml
+Sitemap: /sitemap.xml

@@ -12,17 +12,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <link rel="canonical" href="https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app" />
-
     <!-- OpenGraph Metadata -->
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="pt_BR" />
     <meta property="og:site_name" content="MaréSegura" />
     <meta property="og:title" content="MaréSegura - Tábua de Marés e Navegação Offline" />
     <meta property="og:description" content="Tábua de marés em tempo real, curva astronômica, alertas personalizados de segurança e cartas náuticas offline com cálculo de folga de quilha." />
-    <meta property="og:url" content="https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app" />
-    <meta property="og:image" content="https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app/og-image.jpg" />
-    <meta property="og:image:secure_url" content="https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app/og-image.jpg" />
+    <meta property="og:image" content="/og-image.jpg" />
+    <meta property="og:image:url" content="/og-image.jpg" />
+    <meta property="og:image:secure_url" content="/og-image.jpg" />
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -32,17 +30,19 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="MaréSegura - Tábua de Marés e Navegação Offline" />
     <meta name="twitter:description" content="Tábua de marés em tempo real, curva astronômica, alertas personalizados de segurança e cartas náuticas offline com cálculo de folga de quilha." />
-    <meta name="twitter:image" content="https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app/og-image.jpg" />
+    <meta name="twitter:image" content="/og-image.jpg" />
     <meta name="twitter:image:alt" content="MaréSegura - Tábua de Marés em Tempo Real e Navegação Offline" />
 
-    <!-- Icons, Thumbnail & PWA Manifest -->
+    <!-- Icons, Thumbnail & Fallbacks for WhatsApp / Telegram / Chat Apps -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon-180.png" />
-    <link rel="image_src" href="https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app/og-image.jpg" />
+    <link rel="image_src" href="/og-image.jpg" />
+    <meta itemprop="image" content="/og-image.jpg" />
+    <meta name="thumbnail" content="/og-image.jpg" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#111111" />
 
@@ -59,14 +59,15 @@
       "browserRequirements": "Requires JavaScript. Requires HTML5.",
       "softwareVersion": "2.5.0",
       "description": "Tábua de marés em tempo real, curva astronômica, alertas personalizados de segurança e cartas náuticas offline com cálculo de folga de quilha.",
-      "image": "https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app/og-image.jpg",
-      "screenshot": "https://ais-dev-fxgvkihg3sr5bflhtr7vnj-685868108315.us-east1.run.app/og-image.jpg",
+      "image": "/og-image.jpg",
+      "screenshot": "/og-image.jpg",
       "featureList": [
         "Tábua de marés astronômica em tempo real (DHN Marinha do Brasil)",
         "Cálculo de folga sob a quilha (Under Keel Clearance - UKC)",
         "Previsão meteomarinha 24h de altura de ondas e vento com Recharts",
         "Cartas náuticas eletrônicas offline com OpenSeaMap e GPS",
         "Diário de bordo eletrônico náutico",
+        "Conversor de unidades náuticas (nós para km/h, milhas náuticas, hPa/mb)",
         "Alertas sonoros e visuais de maré e encalhe"
       ],
       "aggregateRating": {
@@ -89,33 +90,54 @@
     </script>
 
     <script>
-      // Garante URL absoluta caso o app seja acessado por outra URL (ex: domínio compartilhado)
-      try {
-        if (typeof window !== 'undefined' && window.location && window.location.origin) {
-          var origin = window.location.origin;
-          var absImg = origin + '/og-image.jpg';
-          var currentUrl = origin + window.location.pathname;
-          
-          var ogImg = document.querySelector('meta[property="og:image"]');
-          if (ogImg) ogImg.setAttribute('content', absImg);
-          var ogSec = document.querySelector('meta[property="og:image:secure_url"]');
-          if (ogSec) ogSec.setAttribute('content', absImg);
-          var twImg = document.querySelector('meta[name="twitter:image"]');
-          if (twImg) twImg.setAttribute('content', absImg);
-          var linkImg = document.querySelector('link[rel="image_src"]');
-          if (linkImg) linkImg.setAttribute('href', absImg);
-          var ogUrl = document.querySelector('meta[property="og:url"]');
-          if (ogUrl) ogUrl.setAttribute('content', currentUrl);
-          var canUrl = document.querySelector('link[rel="canonical"]');
-          if (canUrl) canUrl.setAttribute('href', currentUrl);
-        }
-      } catch (e) {}
+      // Garante URLs absolutas completas no runtime para o host real que o usuário acessou e compartilhou
+      (function() {
+        try {
+          if (typeof window !== 'undefined' && window.location && window.location.origin) {
+            var origin = window.location.origin;
+            var absImg = origin + '/og-image.jpg';
+            var currentUrl = origin + window.location.pathname;
+            
+            var setAttr = function(selector, attr, val) {
+              var el = document.querySelector(selector);
+              if (el) el.setAttribute(attr, val);
+            };
+
+            setAttr('meta[property="og:image"]', 'content', absImg);
+            setAttr('meta[property="og:image:url"]', 'content', absImg);
+            setAttr('meta[property="og:image:secure_url"]', 'content', absImg);
+            setAttr('meta[name="twitter:image"]', 'content', absImg);
+            setAttr('link[rel="image_src"]', 'href', absImg);
+            setAttr('meta[itemprop="image"]', 'content', absImg);
+            setAttr('meta[name="thumbnail"]', 'content', absImg);
+            setAttr('meta[property="og:url"]', 'content', currentUrl);
+            
+            var canUrl = document.querySelector('link[rel="canonical"]');
+            if (!canUrl) {
+              canUrl = document.createElement('link');
+              canUrl.setAttribute('rel', 'canonical');
+              document.head.appendChild(canUrl);
+            }
+            canUrl.setAttribute('href', currentUrl);
+          }
+        } catch (e) {}
+      })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Roboto+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Roboto+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Roboto+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Roboto+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    </noscript>
   </head>
   <body class="bg-[#f8f7f4] text-[#111111] antialiased selection:bg-[#d42020] selection:text-white">
+    <noscript>
+      <div style="padding: 20px; font-family: sans-serif; background: #fff; color: #111; border-bottom: 2px solid #000;">
+        <h2>MaréSegura - Tábua de Marés do Brasil</h2>
+        <p>O MaréSegura necessita do JavaScript ativo para renderizar as curvas astronômicas de maré em tempo real, cálculos de folga sob a quilha e mapas náuticos interativos.</p>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

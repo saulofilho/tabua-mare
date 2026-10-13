@@ -57,6 +57,7 @@ export interface GeocodedLocation {
   longitude: number;
   country: string;
   admin1?: string; // State or province
+  admin2?: string; // Region, county or municipality
   countryCode?: string;
   isBeach?: boolean;
 }
@@ -258,12 +259,12 @@ export async function searchRealLocations(query: string): Promise<GeocodedLocati
 
   // Query real Open-Meteo Geocoding API
   try {
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(trimmed)}&count=10&language=pt&format=json`;
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(trimmed)}&count=15&language=pt&format=json`;
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data.results)) {
-        data.results.forEach((item: { id: number; name: string; latitude: number; longitude: number; country: string; admin1?: string; country_code?: string }) => {
+        data.results.forEach((item: { id: number; name: string; latitude: number; longitude: number; country: string; admin1?: string; admin2?: string; country_code?: string }) => {
           // Avoid duplicate coordinates
           const exists = results.some(
             (r) => Math.abs(r.latitude - item.latitude) < 0.05 && Math.abs(r.longitude - item.longitude) < 0.05
@@ -276,6 +277,7 @@ export async function searchRealLocations(query: string): Promise<GeocodedLocati
               longitude: item.longitude,
               country: item.country,
               admin1: item.admin1,
+              admin2: item.admin2,
               countryCode: item.country_code,
               isBeach: false,
             });

@@ -40,6 +40,7 @@ import {
   TabModuleSkeleton,
 } from './components/TacticalSkeletons';
 import { analytics } from './services/analytics';
+import { alertNotificationService } from './services/alertNotificationService';
 import { Download } from 'lucide-react';
 
 // Code-splitting via React.lazy() para carregamento sob demanda e performance WebAudit
@@ -51,6 +52,7 @@ const NauticalUnitConverter = lazy(() => import('./components/NauticalUnitConver
 const OfflineManagerModal = lazy(() => import('./components/OfflineManagerModal'));
 const VesselConfigModal = lazy(() => import('./components/VesselConfigModal'));
 const LocationSearchModal = lazy(() => import('./components/LocationSearchModal'));
+const EmergencySOSModal = lazy(() => import('./components/EmergencySOSModal'));
 
 const DEFAULT_VESSEL: VesselProfile = {
   name: 'Albatroz',
@@ -58,6 +60,48 @@ const DEFAULT_VESSEL: VesselProfile = {
   draft: 1.45,
   safetyMargin: 0.6,
   airDraft: 12.8,
+};
+
+// Container com IntersectionObserver para postergar carregamento de componentes pesados fora da dobra
+const LazyViewportContainer: React.FC<{
+  children: React.ReactNode;
+  fallback: React.ReactNode;
+  rootMargin?: string;
+}> = ({ children, fallback, rootMargin = '250px 0px' }) => {
+  const [inView, setInView] = useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') {
+      setInView(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    const timer = setTimeout(() => {
+      setInView(true);
+    }, 3200);
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+    };
+  }, [rootMargin]);
+
+  return <div ref={containerRef}>{inView ? children : fallback}</div>;
 };
 
 const INITIAL_RULES: TideAlertRule[] = [
@@ -108,6 +152,30 @@ const INITIAL_RULES: TideAlertRule[] = [
     soundType: 'shipbell',
     unit: '',
     description: 'Informa período de variação máxima de maré e correntes acentuadas.',
+  },
+  {
+    id: 'rule-strong-current',
+    title: 'Correnteza Forte (> 2.5 nós)',
+    type: 'strong_current',
+    thresholdValue: 2.5,
+    operator: 'greater_than',
+    enabled: true,
+    soundAlert: false,
+    soundType: 'foghorn',
+    unit: 'nós',
+    description: 'Monitora a velocidade estimada da correnteza de maré e dispara alerta visual quando exceder 2.5 nós.',
+  },
+  {
+    id: 'rule-excessive-wind',
+    title: 'Vento Excessivo (> 25 nós)',
+    type: 'excessive_wind',
+    thresholdValue: 25,
+    operator: 'greater_than',
+    enabled: true,
+    soundAlert: false,
+    soundType: 'foghorn',
+    unit: 'nós',
+    description: 'Monitora a velocidade do vento via condições meteomarinhas e dispara alerta visual quando exceder 25 nós.',
   },
 ];
 
@@ -184,6 +252,7 @@ export default function App() {
   const [isVesselModalOpen, setIsVesselModalOpen] = useState<boolean>(false);
   const [isOfflineModalOpen, setIsOfflineModalOpen] = useState<boolean>(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState<boolean>(false);
+  const [isSOSModalOpen, setIsSOSModalOpen] = useState<boolean>(false);
 
   // Vessel Profile state
   const [vessel, setVessel] = useState<VesselProfile>(() => {
@@ -199,7 +268,14 @@ export default function App() {
   const [rules, setRules] = useState<TideAlertRule[]>(() => {
     try {
       const saved = localStorage.getItem('maresegura_rules');
-      return saved ? JSON.parse(saved) : INITIAL_RULES;
+      if (saved) {
+        const parsed: TideAlertRule[] = JSON.parse(saved);
+        const missingInitial = INITIAL_RULES.filter(
+          (initR) => !parsed.some((pR) => pR.id === initR.id || pR.type === initR.type)
+        );
+        return missingInitial.length > 0 ? [...parsed, ...missingInitial] : parsed;
+      }
+      return INITIAL_RULES;
     } catch {
       return INITIAL_RULES;
     }
@@ -345,6 +421,11 @@ export default function App() {
     const refDepth = 2.5;
     const ukc = status.currentHeight + refDepth - vessel.draft;
 
+    // Velocidade estimada do vento em nós a partir de marineConditions (1 nós = 1.852 km/h)
+    const currentWindKnots = marineConditions?.windSpeedKmH
+      ? Math.round((marineConditions.windSpeedKmH / 1.852) * 10) / 10
+      : undefined;
+
     rules.forEach((rule) => {
       if (!rule.enabled) return;
 
@@ -398,11 +479,43 @@ export default function App() {
           timestamp: Date.now(),
           value: `${status.estimatedCurrentKnots} nós`,
         });
+      } else if (
+        rule.type === 'excessive_wind' &&
+        currentWindKnots !== undefined &&
+        currentWindKnots > rule.thresholdValue
+      ) {
+        alerts.push({
+          id: `alt-${rule.id}`,
+          ruleId: rule.id,
+          title: rule.title,
+          message: `Velocidade do vento registrada em ${currentWindKnots} nós (excede o limite de ${rule.thresholdValue} nós). Risco para navegação e fundeio.`,
+          severity: 'warning',
+          timestamp: Date.now(),
+          value: `${currentWindKnots} nós`,
+        });
       }
     });
 
     return alerts;
-  }, [rules, status, vessel]);
+  }, [rules, status, vessel, marineConditions]);
+
+  // Disparo contínuo e inteligente de notificações de alerta no navegador (primeiro e segundo plano)
+  useEffect(() => {
+    if (activeAlerts.length > 0) {
+      alertNotificationService.syncActiveAlerts(activeAlerts, rules);
+    }
+  }, [activeAlerts, rules]);
+
+  // Listener para segundo plano: monitora quando o usuário minimiza o navegador ou muda de aba
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && activeAlerts.length > 0) {
+        alertNotificationService.syncActiveAlerts(activeAlerts, rules);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [activeAlerts, rules]);
 
   const handleSelectBeach = (beach: BeachLocation) => {
     setSelectedBeach(beach);
@@ -468,33 +581,51 @@ export default function App() {
     setOfflineStatuses(loadOfflineRegions());
   };
 
-  // Atualização dinâmica de Título (SEO) e rastreamento de métricas SPA
+  // Atualização dinâmica de Título (SEO), Meta Description e rastreamento de métricas SPA
   useEffect(() => {
     let title = 'MaréSegura - Tábua de Marés e Navegação Offline';
+    let description = 'Tábua de marés em tempo real, curva astronômica, alertas personalizados de segurança e cartas náuticas offline com cálculo de folga de quilha.';
     const loc = selectedBeach?.name || station.name;
 
     switch (activeTab) {
       case 'tides':
         title = `Maré em ${loc} (${station.state}) - Tábua de Marés | MaréSegura`;
+        description = `Consulte a tábua de marés em tempo real para ${loc} (${station.state}), previsão oficial DHN, curva horária astronômica e ondulação do mar.`;
         break;
       case 'map':
         title = `Carta Náutica & GPS Offline - ${loc} | MaréSegura`;
+        description = `Cartas náuticas eletrônicas com sinalização OpenSeaMap, waypoints, vigia de âncora e GPS náutico para ${loc}.`;
         break;
       case 'logbook':
         title = 'Diário de Bordo Náutico & Histórico de Navegação | MaréSegura';
+        description = 'Livro de registro e diário de bordo eletrônico náutico com telemetria automática de vento, maré e condições do mar.';
         break;
       case 'alerts':
         title = 'Central de Alertas & Folga sob a Quilha (UKC) | MaréSegura';
+        description = 'Configuração de alarmes náuticos sonoros para profundidade mínima, folga sob a quilha (UKC) e picos de maré alta.';
         break;
       case 'offline':
         title = 'Gerenciador de Cartas e Mapas Offline | MaréSegura';
+        description = 'Baixe cartas náuticas e tábuas astronômicas para uso 100% offline em alto-mar sem necessidade de sinal celular.';
         break;
       case 'converter':
         title = 'Conversor de Unidades Náuticas (Nós, Milhas, Pressão) | MaréSegura';
+        description = 'Conversor tático de unidades marítimas: nós para km/h, milhas náuticas para km, hPa para milibar com régua de Beaufort.';
         break;
     }
 
     document.title = title;
+    
+    // Atualizar meta tags para auditores e crawlers
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute('content', description);
+    
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', title);
+    
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute('content', description);
+
     analytics.trackPageView(`/?tab=${activeTab}`, title);
   }, [activeTab, station, selectedBeach]);
 
@@ -508,11 +639,13 @@ export default function App() {
           isOfflineMode={isOfflineMode}
           onToggleOfflineMode={handleToggleOfflineMode}
           onOpenDownloadModal={() => setIsOfflineModalOpen(true)}
+          onOpenSOSModal={() => setIsSOSModalOpen(true)}
           timeRange={timeRange}
           onToggleTimeRange={setTimeRange}
           tempUnit={tempUnit}
           onToggleTempUnit={handleToggleTempUnit}
           ongoingVoyagesCount={logbookEntries.filter((e) => e.status === 'ongoing').length}
+          activeAlertsCount={activeAlerts.length}
           isDarkMode={isDarkMode}
           onToggleDarkMode={handleToggleDarkMode}
         />
@@ -534,6 +667,25 @@ export default function App() {
           onResetToNearest={() => handleSelectBeach(nearestInfo.beach)}
           onOpenSearch={() => setIsSearchModalOpen(true)}
         />
+
+        {/* Banner Visual de Alertas de Navegação Ativos */}
+        {activeAlerts.length > 0 && (
+          <div className="bg-[#fee2e2] border-b-2 border-black p-2.5 px-4 font-mono flex items-center justify-between flex-wrap gap-2 text-xs">
+            <div className="flex items-center gap-2 text-[#d42020] font-bold">
+              <span className="w-2.5 h-2.5 bg-[#d42020] rounded-full animate-ping shrink-0" />
+              <span>{activeAlerts.length} ALERTA(S) ATIVO(S):</span>
+              <span className="text-black font-semibold">
+                {activeAlerts.map((a) => `${a.title} (${a.value})`).join(' • ')}
+              </span>
+            </div>
+            <button
+              onClick={() => setActiveTab('alerts')}
+              className="px-2.5 py-1 bg-black text-white text-[10px] font-bold uppercase hover:bg-[#333] cursor-pointer"
+            >
+              VER DETALHES
+            </button>
+          </div>
+        )}
 
         {/* Tab 1: Tábua de Marés */}
         {activeTab === 'tides' && (
@@ -559,16 +711,18 @@ export default function App() {
               onOpenConverter={() => setActiveTab('converter')}
             />
 
-            {/* PREVISÃO DE ONDAS E VELOCIDADE DO VENTO 24H (GRÁFICO DE BARRAS RECHARTS) */}
-            <Suspense fallback={<WaveWindChartSkeleton />}>
-              <WaveWindForecastBarChart
-                station={station}
-                beachLat={selectedBeach?.lat}
-                beachLng={selectedBeach?.lng}
-                locationName={selectedBeach?.name || station.name}
-                isOfflineMode={isOfflineMode}
-              />
-            </Suspense>
+            {/* PREVISÃO DE ONDAS E VELOCIDADE DO VENTO 24H (GRÁFICO DE BARRAS RECHARTS SOB DEMANDA) */}
+            <LazyViewportContainer fallback={<WaveWindChartSkeleton />}>
+              <Suspense fallback={<WaveWindChartSkeleton />}>
+                <WaveWindForecastBarChart
+                  station={station}
+                  beachLat={selectedBeach?.lat}
+                  beachLng={selectedBeach?.lng}
+                  locationName={selectedBeach?.name || station.name}
+                  isOfflineMode={isOfflineMode}
+                />
+              </Suspense>
+            </LazyViewportContainer>
 
             {/* REPRESENTAÇÃO VISUAL DA MARÉ (Corte Transversal & Coluna d'Água) */}
             <VisualTideGauge
@@ -744,10 +898,11 @@ export default function App() {
       </div>
 
       {/* Mobile Fixed Bottom Nav */}
-      <div className="md:hidden sticky bottom-0 z-40 bg-[#f8f7f4] border-t-2 border-black p-1 grid grid-cols-5 gap-1 text-center font-mono">
+      <nav aria-label="Navegação móvel inferior" className="md:hidden sticky bottom-0 z-40 bg-[#f8f7f4] border-t-2 border-black p-1 grid grid-cols-6 gap-0.5 text-center font-mono">
         <button
           onClick={() => setActiveTab('tides')}
           aria-label="Aba Tábua de Marés"
+          aria-current={activeTab === 'tides' ? 'page' : undefined}
           className={`py-2 text-[9px] font-bold uppercase cursor-pointer ${
             activeTab === 'tides' ? 'bg-black text-white' : 'text-black hover:bg-[#eeebe6]'
           }`}
@@ -757,6 +912,7 @@ export default function App() {
         <button
           onClick={() => setActiveTab('map')}
           aria-label="Aba Mapa Náutico"
+          aria-current={activeTab === 'map' ? 'page' : undefined}
           className={`py-2 text-[9px] font-bold uppercase cursor-pointer ${
             activeTab === 'map' ? 'bg-black text-white' : 'text-black hover:bg-[#eeebe6]'
           }`}
@@ -764,8 +920,19 @@ export default function App() {
           MAPA
         </button>
         <button
+          onClick={() => setActiveTab('logbook')}
+          aria-label="Aba Diário de Bordo"
+          aria-current={activeTab === 'logbook' ? 'page' : undefined}
+          className={`py-2 text-[9px] font-bold uppercase cursor-pointer ${
+            activeTab === 'logbook' ? 'bg-black text-white' : 'text-black hover:bg-[#eeebe6]'
+          }`}
+        >
+          DIÁRIO
+        </button>
+        <button
           onClick={() => setActiveTab('converter')}
           aria-label="Aba Conversor Náutico"
+          aria-current={activeTab === 'converter' ? 'page' : undefined}
           className={`py-2 text-[9px] font-bold uppercase cursor-pointer ${
             activeTab === 'converter' ? 'bg-[#d42020] text-white' : 'text-black hover:bg-[#eeebe6]'
           }`}
@@ -775,22 +942,27 @@ export default function App() {
         <button
           onClick={() => setActiveTab('alerts')}
           aria-label="Aba Alertas"
-          className={`py-2 text-[9px] font-bold uppercase cursor-pointer ${
+          aria-current={activeTab === 'alerts' ? 'page' : undefined}
+          className={`py-2 text-[9px] font-bold uppercase cursor-pointer relative ${
             activeTab === 'alerts' ? 'bg-black text-white' : 'text-black hover:bg-[#eeebe6]'
           }`}
         >
-          ALERTAS
+          <span>ALERTAS</span>
+          {activeAlerts.length > 0 && (
+            <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-[#d42020] animate-pulse" />
+          )}
         </button>
         <button
           onClick={() => setActiveTab('offline')}
           aria-label="Aba Offline"
+          aria-current={activeTab === 'offline' ? 'page' : undefined}
           className={`py-2 text-[9px] font-bold uppercase cursor-pointer ${
             activeTab === 'offline' ? 'bg-black text-white' : 'text-black hover:bg-[#eeebe6]'
           }`}
         >
           OFFLINE
         </button>
-      </div>
+      </nav>
 
       {/* Rodapé Marítimo com Informações Claras */}
       <footer className="border-t-2 border-black px-4 sm:px-6 py-2.5 bg-[#f8f7f4] flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] font-bold uppercase text-[#111111]">
@@ -839,6 +1011,26 @@ export default function App() {
             userCoords={userCoords}
             onSelectBeach={handleSelectBeach}
             onSelectCustomLocation={handleSelectCustomLocation}
+            onSelectLocation={(beach, st) => {
+              setSelectedBeach(beach);
+              setStation(st);
+            }}
+          />
+        </Suspense>
+      )}
+
+      {/* Modal Tático de Sinalização de Socorro SOS (MAYDAY) */}
+      {isSOSModalOpen && (
+        <Suspense fallback={null}>
+          <EmergencySOSModal
+            isOpen={isSOSModalOpen}
+            onClose={() => setIsSOSModalOpen(false)}
+            vessel={vessel}
+            userCoords={userCoords}
+            hasRealGPS={hasRealGPS}
+            station={station}
+            selectedBeachName={selectedBeach?.name}
+            onRequestGPS={handleRequestGPS}
           />
         </Suspense>
       )}

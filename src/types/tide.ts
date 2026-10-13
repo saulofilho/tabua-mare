@@ -80,7 +80,7 @@ export interface VesselProfile {
   airDraft: number; // Calado aéreo em metros (altura do mastro/superestrutura)
 }
 
-export type AlertType = 'high_tide' | 'low_tide' | 'ukc_clearance' | 'spring_tide' | 'strong_current';
+export type AlertType = 'high_tide' | 'low_tide' | 'ukc_clearance' | 'spring_tide' | 'strong_current' | 'excessive_wind';
 
 export interface TideAlertRule {
   id: string;
@@ -104,6 +104,16 @@ export interface ActiveAlertNotification {
   severity: 'warning' | 'danger' | 'info';
   timestamp: number;
   value: string;
+}
+
+export interface PushSubscriptionInfo {
+  endpoint: string;
+  expirationTime?: number | null;
+  keys?: {
+    p256dh?: string;
+    auth?: string;
+  };
+  subscribedAt: number;
 }
 
 export interface Waypoint {
@@ -165,4 +175,19 @@ export interface NavigationLogEntry {
   crewCount?: number;
   distanceNm?: number;
   notes?: string;
+}
+
+export type AnchorWatchStatus = 'safe' | 'warning' | 'alarm';
+
+export interface AnchorWatchState {
+  isActive: boolean;
+  anchorPosition: [number, number] | null; // [lat, lng]
+  droppedAt: number | null; // timestamp ms
+  safetyRadius: number; // in meters (e.g. 25, 40, 60m)
+  currentDistance: number; // distance in meters from anchor to vessel
+  bearingToAnchor: number; // degrees 0-360
+  status: AnchorWatchStatus;
+  isAlarmSilenced: boolean;
+  gpsAccuracy: number | null; // GPS precision in meters
+  driftTrail: Array<{ lat: number; lng: number; timestamp: number }>; // Swing history
 }

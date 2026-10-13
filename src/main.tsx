@@ -8,13 +8,13 @@ analytics.init();
 
 createRoot(document.getElementById('root')!).render(<App />);
 
-// Registro do Service Worker para conformidade PWA e navegação offline
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+// Registro do Service Worker para conformidade PWA, notificações e navegação offline
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')
       .then((reg) => {
-        console.log('MaréSegura PWA Service Worker registrado:', reg.scope);
+        console.log('MaréSegura Service Worker registrado com sucesso:', reg.scope);
       })
       .catch((err) => {
         console.warn('Falha no registro do Service Worker:', err);

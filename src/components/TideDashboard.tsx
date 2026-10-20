@@ -29,8 +29,10 @@ import {
   Droplets,
   CloudSun,
   BookOpen,
+  History,
 } from 'lucide-react';
 import { WeeklyTideStatsChart } from './WeeklyTideStatsChart';
+import { TideHistoryPast7Days } from './TideHistoryPast7Days';
 
 interface TideDashboardProps {
   station: TideStation;
@@ -46,6 +48,7 @@ interface TideDashboardProps {
   onOpenAlertsModal: () => void;
   onOpenLogbook?: () => void;
   onOpenConverter?: () => void;
+  currentTime?: number;
 }
 
 export const TideDashboard: React.FC<TideDashboardProps> = ({
@@ -62,8 +65,10 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
   onOpenAlertsModal,
   onOpenLogbook,
   onOpenConverter,
+  currentTime,
 }) => {
   const [viewMode, setViewMode] = useState<'timeline' | 'cards' | 'table'>('timeline');
+  const [tideAnalysisView, setTideAnalysisView] = useState<'both' | 'history' | 'forecast'>('both');
 
   // Profundidade de referência para canais costeiros (2.5m de profundidade na carta náutica)
   const refChartedDepth = 2.5;
@@ -766,10 +771,69 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
         </div>
       </div>
 
-      {/* SEÇÃO DE ESTATÍSTICAS SEMANAIS DA MARÉ COM RECHARTS (VARIAÇÕES ACUMULADAS) */}
-      <div className="border-b-2 border-black bg-white p-5 sm:p-6" id="weekly-tide-stats-section">
-        <WeeklyTideStatsChart station={station} />
+      {/* SELETOR DE ANÁLISE TEMPORAL (HISTÓRICO DOS ÚLTIMOS 7 DIAS VS PREVISÃO FUTURA) */}
+      <div className="border-b-2 border-black bg-[#f8f7f4] px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <History className="w-4 h-4 text-[#d42020]" />
+          <span className="font-display font-bold text-xs uppercase tracking-tight text-black">
+            Análise Astronômica Semanal da Maré (Passado & Futuro)
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5" role="group" aria-label="Visualização de análise astronômica">
+          <button
+            onClick={() => setTideAnalysisView('history')}
+            aria-pressed={tideAnalysisView === 'history'}
+            className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black cursor-pointer transition-colors flex items-center gap-1.5 ${
+              tideAnalysisView === 'history'
+                ? 'bg-black text-white'
+                : 'bg-white hover:bg-[#eee] text-black'
+            }`}
+          >
+            <History className="w-3.5 h-3.5 text-[#d42020]" />
+            <span>Últimos 7 Dias (Histórico)</span>
+          </button>
+
+          <button
+            onClick={() => setTideAnalysisView('forecast')}
+            aria-pressed={tideAnalysisView === 'forecast'}
+            className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black cursor-pointer transition-colors flex items-center gap-1.5 ${
+              tideAnalysisView === 'forecast'
+                ? 'bg-black text-white'
+                : 'bg-white hover:bg-[#eee] text-black'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>Próximos 7 Dias (Previsão)</span>
+          </button>
+
+          <button
+            onClick={() => setTideAnalysisView('both')}
+            aria-pressed={tideAnalysisView === 'both'}
+            className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black cursor-pointer transition-colors ${
+              tideAnalysisView === 'both'
+                ? 'bg-black text-white'
+                : 'bg-white hover:bg-[#eee] text-black'
+            }`}
+          >
+            Ver Ambos
+          </button>
+        </div>
       </div>
+
+      {/* SEÇÃO DE HISTÓRICO DE MARÉS DOS ÚLTIMOS 7 DIAS COM RECHARTS */}
+      {(tideAnalysisView === 'both' || tideAnalysisView === 'history') && (
+        <div className="border-b-2 border-black bg-white p-5 sm:p-6" id="past-tide-history-section">
+          <TideHistoryPast7Days station={station} currentTime={currentTime} />
+        </div>
+      )}
+
+      {/* SEÇÃO DE ESTATÍSTICAS SEMANAIS DA MARÉ COM RECHARTS (VARIAÇÕES ACUMULADAS) */}
+      {(tideAnalysisView === 'both' || tideAnalysisView === 'forecast') && (
+        <div className="border-b-2 border-black bg-white p-5 sm:p-6" id="weekly-tide-stats-section">
+          <WeeklyTideStatsChart station={station} currentTime={currentTime} />
+        </div>
+      )}
     </div>
   );
 };

@@ -709,6 +709,7 @@ export default function App() {
               onOpenAlertsModal={() => setActiveTab('alerts')}
               onOpenLogbook={() => setActiveTab('logbook')}
               onOpenConverter={() => setActiveTab('converter')}
+              currentTime={currentTime}
             />
 
             {/* PREVISÃO DE ONDAS E VELOCIDADE DO VENTO 24H (GRÁFICO DE BARRAS RECHARTS SOB DEMANDA) */}

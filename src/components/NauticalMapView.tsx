@@ -18,10 +18,13 @@ import {
   HelpCircle,
   Clock,
   Radio,
+  Layers,
 } from 'lucide-react';
 import { RadarMapSkeleton } from './TacticalSkeletons';
 import { maritimeAudio } from '../utils/audioAlerts';
 import { alertNotificationService } from '../services/alertNotificationService';
+import { DigitalCompass } from './DigitalCompass';
+import { RoutePlanner } from './RoutePlanner';
 
 // Code-splitting via React.lazy() da biblioteca e camadas cartográficas Leaflet
 const LeafletNauticalMap = lazy(() => import('./LeafletNauticalMap'));
@@ -117,7 +120,15 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
   const [isAlarmSilenced, setIsAlarmSilenced] = useState<boolean>(false);
   const [isSettingAnchorByClick, setIsSettingAnchorByClick] = useState<boolean>(false);
   const [driftTrail, setDriftTrail] = useState<Array<{ lat: number; lng: number }>>([]);
-  const [activeSidebarTab, setActiveSidebarTab] = useState<'anchor' | 'waypoints' | 'layers'>('anchor');
+  const [activeSidebarTab, setActiveSidebarTab] = useState<'anchor' | 'waypoints' | 'compass' | 'layers'>('anchor');
+  const [isCompassOverlayOpen, setIsCompassOverlayOpen] = useState<boolean>(false);
+  const [targetCourse, setTargetCourse] = useState<number | null>(null);
+  const [isDrawingRouteMode, setIsDrawingRouteMode] = useState<boolean>(false);
+
+  // Coordenadas manuais de fundeio
+  const [manualAnchorLat, setManualAnchorLat] = useState<string>('');
+  const [manualAnchorLng, setManualAnchorLng] = useState<string>('');
+  const [isManualAnchorOpen, setIsManualAnchorOpen] = useState<boolean>(false);
 
   // Camadas ativas no mapa
   const [showSeamarks, setShowSeamarks] = useState<boolean>(true);
@@ -356,6 +367,23 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
     setDriftTrail([]);
     setIsSettingAnchorByClick(false);
     setIsAlarmSilenced(false);
+    setIsManualAnchorOpen(false);
+  };
+
+  // Definir Ponto de Fundeio através de coordenadas manuais
+  const handleApplyManualAnchor = (e: React.FormEvent) => {
+    e.preventDefault();
+    const lat = parseFloat(manualAnchorLat);
+    const lng = parseFloat(manualAnchorLng);
+    if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      setAnchorPosition([lat, lng]);
+      setAnchorWatchActive(true);
+      setAnchorDroppedAt(Date.now());
+      setDriftTrail([{ lat, lng }]);
+      setIsManualAnchorOpen(false);
+      maritimeAudio.playAnchorDropChime();
+      startLiveGPSWatch();
+    }
   };
 
   // Simular Garreio de Âncora (Teste imediato de disparo visual e sonoro)
@@ -455,10 +483,21 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
           <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
             <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
               <div className="bg-white border-2 border-black px-3 py-1.5 flex items-center gap-2 text-xs font-mono text-black shadow-[2px_2px_0px_#000]">
-                <Compass className="w-3.5 h-3.5" />
-                <span>RUMO: <strong className="tabular-nums">{vesselHeading}°</strong></span>
+                <Compass className="w-3.5 h-3.5 text-[#d42020]" />
+                <span>
+                  RUMO: <strong className="tabular-nums">{vesselHeading}°</strong> ({degreesToCardinal(vesselHeading)})
+                </span>
                 <span>|</span>
                 <span>VELOCIDADE: <strong className="tabular-nums">{vesselSpeed} NÓS</strong></span>
+                <button
+                  onClick={() => setIsCompassOverlayOpen(!isCompassOverlayOpen)}
+                  className={`ml-1 px-2 py-0.5 text-[10px] uppercase font-bold border border-black cursor-pointer transition-colors ${
+                    isCompassOverlayOpen ? 'bg-black text-white' : 'bg-[#d42020] text-white hover:bg-black'
+                  }`}
+                  title="Abrir/Fechar Bússola Digital com sensor de orientação do aparelho sobre a carta náutica"
+                >
+                  {isCompassOverlayOpen ? 'OCULTAR BÚSSOLA' : 'BÚSSOLA DIGITAL'}
+                </button>
               </div>
 
               <div className="bg-white border-2 border-black px-3 py-1.5 flex items-center gap-2 text-xs font-mono text-black shadow-[2px_2px_0px_#000]">
@@ -519,6 +558,33 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
             </div>
           )}
 
+          {/* Banner de Modo Desenho de Waypoints da Rota */}
+          {isDrawingRouteMode && (
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-[#111] text-white px-4 py-2.5 border-2 border-[#10b981] shadow-[4px_4px_0px_#000] font-mono text-xs font-bold flex items-center gap-3">
+              <Navigation className="w-4 h-4 text-[#10b981] animate-pulse" />
+              <span>MODO DESENHO ATIVO: CLIQUE NA CARTA PARA ADICIONAR WAYPOINTS ({routeWaypoints.length} MARCADOS)</span>
+              <button
+                onClick={() => setIsDrawingRouteMode(false)}
+                className="bg-[#10b981] text-black px-2 py-0.5 text-[10px] uppercase font-bold border border-black cursor-pointer hover:bg-white"
+              >
+                CONCLUIR
+              </button>
+            </div>
+          )}
+
+          {/* Overlay Flutuante da Bússola Digital sobre o Mapa */}
+          {isCompassOverlayOpen && (
+            <div className="absolute top-14 right-3 z-30 pointer-events-auto w-80 max-w-[calc(100vw-32px)]">
+              <DigitalCompass
+                currentHeading={vesselHeading}
+                onHeadingChange={(h) => setVesselHeading(h)}
+                targetHeading={targetCourse}
+                onSetTargetHeading={setTargetCourse}
+                isCompact={true}
+              />
+            </div>
+          )}
+
           {/* Controles Flutuantes de Ação Rápida no Rodapé do Mapa */}
           <div className="absolute bottom-3 left-3 z-20 flex flex-wrap items-center gap-2">
             <button
@@ -530,6 +596,36 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
               <Radio className="w-3.5 h-3.5" />
               {isLiveGPSActive ? 'GPS AO VIVO ATIVO' : 'USAR GPS DO APARELHO'}
             </button>
+
+            {/* Botão Rápido de Vigia de Âncora (Anchor Watch) */}
+            {!anchorWatchActive ? (
+              <button
+                onClick={() => {
+                  setActiveSidebarTab('anchor');
+                  handleDropAnchor();
+                }}
+                className="px-3 py-1.5 font-mono text-xs font-bold uppercase border-2 border-black bg-[#10b981] hover:bg-[#059669] text-white shadow-[2px_2px_0px_#000] cursor-pointer transition-colors flex items-center gap-1.5"
+                title="Ativar Modo Vigia de Âncora e fundear no GPS atual"
+              >
+                <Anchor className="w-3.5 h-3.5" />
+                <span>ATIVAR VIGIA DE ÂNCORA</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setActiveSidebarTab('anchor')}
+                className={`px-3 py-1.5 font-mono text-xs font-bold uppercase border-2 border-black shadow-[2px_2px_0px_#000] cursor-pointer transition-colors flex items-center gap-1.5 ${
+                  anchorStatus === 'alarm'
+                    ? 'bg-[#d42020] text-white animate-pulse'
+                    : anchorStatus === 'warning'
+                    ? 'bg-[#f59e0b] text-black'
+                    : 'bg-black text-white'
+                }`}
+                title="Visualizar status da Vigia de Âncora"
+              >
+                <Anchor className="w-3.5 h-3.5" />
+                <span>VIGIA: {currentAnchorDistance}m / {anchorRadius}m</span>
+              </button>
+            )}
 
             {anchorWatchActive ? (
               <>
@@ -560,6 +656,23 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
               </button>
             )}
 
+            {/* Botão Rápido de Planejador de Rotas */}
+            <button
+              onClick={() => {
+                setActiveSidebarTab('waypoints');
+                setIsDrawingRouteMode(!isDrawingRouteMode);
+              }}
+              className={`px-3 py-1.5 font-mono text-xs font-bold uppercase border-2 border-black shadow-[2px_2px_0px_#000] cursor-pointer transition-colors flex items-center gap-1.5 ${
+                isDrawingRouteMode
+                  ? 'bg-[#10b981] text-black animate-pulse'
+                  : 'bg-white text-black hover:bg-[#eeebe6]'
+              }`}
+              title="Ativar modo de desenho de waypoints na carta náutica"
+            >
+              <Navigation className="w-3.5 h-3.5 text-[#d42020]" />
+              <span>{isDrawingRouteMode ? 'DESENHANDO ROTA...' : 'PLANEJAR ROTA'}</span>
+            </button>
+
             <button
               onClick={() => setVesselPosition([station.lat, station.lng])}
               className="px-3 py-1.5 font-mono text-xs font-bold uppercase border-2 border-black bg-white hover:bg-[#eeebe6] text-black shadow-[2px_2px_0px_#000] cursor-pointer transition-colors"
@@ -578,7 +691,7 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
               vesselHeading={vesselHeading}
               routeWaypoints={routeWaypoints}
               onMapClickAddWaypoint={(wp) => {
-                setRouteWaypoints((prev) => (prev.length >= 8 ? prev : [...prev, wp]));
+                setRouteWaypoints((prev) => (prev.length >= 30 ? prev : [...prev, wp]));
               }}
               showHazards={showHazards}
               showSeamarks={showSeamarks}
@@ -603,7 +716,7 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
         <div className="p-4 sm:p-5 bg-[#eeebe6] flex flex-col justify-between space-y-4">
           <div className="space-y-4">
             {/* Seletor de Abas Táticas Laterais */}
-            <div className="grid grid-cols-3 border-2 border-black bg-white text-xs font-mono font-bold">
+            <div className="grid grid-cols-4 border-2 border-black bg-white text-xs font-mono font-bold">
               <button
                 onClick={() => setActiveSidebarTab('anchor')}
                 className={`py-2 px-1 text-center cursor-pointer transition-colors border-r-2 border-black flex items-center justify-center gap-1 ${
@@ -611,7 +724,7 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
                 }`}
               >
                 <Anchor className="w-3.5 h-3.5" />
-                <span>ÂNCORA</span>
+                <span className="hidden sm:inline">ÂNCORA</span>
               </button>
 
               <button
@@ -621,7 +734,17 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
                 }`}
               >
                 <Navigation className="w-3.5 h-3.5" />
-                <span>ROTAS</span>
+                <span className="hidden sm:inline">ROTAS</span>
+              </button>
+
+              <button
+                onClick={() => setActiveSidebarTab('compass')}
+                className={`py-2 px-1 text-center cursor-pointer transition-colors border-r-2 border-black flex items-center justify-center gap-1 ${
+                  activeSidebarTab === 'compass' ? 'bg-black text-white' : 'hover:bg-[#f2efe9] text-black'
+                }`}
+              >
+                <Compass className="w-3.5 h-3.5 text-[#d42020]" />
+                <span className="hidden sm:inline">BÚSSOLA</span>
               </button>
 
               <button
@@ -630,15 +753,66 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
                   activeSidebarTab === 'layers' ? 'bg-black text-white' : 'hover:bg-[#f2efe9] text-black'
                 }`}
               >
-                <Compass className="w-3.5 h-3.5" />
-                <span>CAMADAS</span>
+                <Layers className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">CAMADAS</span>
               </button>
             </div>
 
             {/* ABA 1: VIGIA DE ÂNCORA (ANCHOR WATCH & ALARME DE GARREIO) */}
             {activeSidebarTab === 'anchor' && (
               <div className="space-y-4">
-                {/* Botão Principal de Ativação / Lançamento */}
+                {/* Configuração do Raio de Tolerância (Visível sempre) */}
+                <div className="p-3 border-2 border-black bg-white shadow-[2px_2px_0px_#000] space-y-2.5">
+                  <div className="flex items-center justify-between font-mono text-xs">
+                    <span className="font-bold uppercase tracking-wider text-[#666] text-[11px] flex items-center gap-1">
+                      <Crosshair className="w-3.5 h-3.5 text-[#d42020]" />
+                      Raio de Tolerância:
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="5"
+                        max="300"
+                        step="1"
+                        value={anchorRadius}
+                        onChange={(e) => setAnchorRadius(Math.max(5, Math.min(300, Number(e.target.value) || 20)))}
+                        className="w-16 px-1.5 py-0.5 border-2 border-black font-mono text-xs font-bold text-center tabular-nums focus:outline-none"
+                        aria-label="Raio de tolerância da âncora em metros"
+                      />
+                      <span className="font-bold text-xs">m</span>
+                    </div>
+                  </div>
+
+                  {/* Presets Rápidos */}
+                  <div className="grid grid-cols-5 gap-1 font-mono text-xs font-bold">
+                    {[15, 25, 35, 50, 75].map((preset) => (
+                      <button
+                        key={preset}
+                        onClick={() => setAnchorRadius(preset)}
+                        className={`py-1 border border-black cursor-pointer transition-colors ${
+                          anchorRadius === preset
+                            ? 'bg-black text-white'
+                            : 'bg-white hover:bg-[#eee] text-black'
+                        }`}
+                      >
+                        {preset}m
+                      </button>
+                    ))}
+                  </div>
+
+                  <input
+                    type="range"
+                    min="10"
+                    max="200"
+                    step="5"
+                    value={anchorRadius}
+                    onChange={(e) => setAnchorRadius(Number(e.target.value))}
+                    className="w-full accent-black cursor-pointer"
+                    aria-label="Ajustar raio de tolerância do fundeio"
+                  />
+                </div>
+
+                {/* Botões de Ação para Definir o Ponto de Fundeio */}
                 {!anchorWatchActive ? (
                   <div className="space-y-2">
                     <button
@@ -646,7 +820,7 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
                       className="w-full bg-[#111111] hover:bg-black text-white border-2 border-black p-3 font-mono text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-[3px_3px_0px_#000] active:translate-x-0.5 active:translate-y-0.5"
                     >
                       <Anchor className="w-4 h-4 text-[#10b981]" />
-                      <span>LANÇAR ÂNCORA (INICIAR VIGIA)</span>
+                      <span>LANÇAR NO GPS ATUAL (INICIAR VIGIA)</span>
                     </button>
 
                     <div className="grid grid-cols-2 gap-2">
@@ -661,14 +835,73 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
                       </button>
 
                       <button
-                        onClick={() => maritimeAudio.playAnchorDragAlarm()}
-                        className="border-2 border-black bg-white hover:bg-[#eee] p-2 font-mono text-[11px] font-bold uppercase cursor-pointer flex items-center justify-center gap-1.5 text-black"
-                        title="Testar reprodução da sirene de alarme de garreio"
+                        onClick={() => setIsManualAnchorOpen(!isManualAnchorOpen)}
+                        className={`border-2 border-black p-2 font-mono text-[11px] font-bold uppercase cursor-pointer flex items-center justify-center gap-1.5 transition-colors ${
+                          isManualAnchorOpen ? 'bg-black text-white' : 'bg-white text-black hover:bg-[#eee]'
+                        }`}
                       >
-                        <BellRing className="w-3.5 h-3.5 text-[#d42020]" />
-                        <span>TESTAR SIRENE</span>
+                        <Crosshair className="w-3.5 h-3.5 text-black" />
+                        <span>INSERIR COORDENADAS</span>
                       </button>
                     </div>
+
+                    {/* Formulário de Coordenadas Manuais de Fundeio */}
+                    {isManualAnchorOpen && (
+                      <form onSubmit={handleApplyManualAnchor} className="p-3 border-2 border-black bg-white space-y-2">
+                        <span className="block font-bold uppercase text-[10px] text-[#666]">
+                          Definir Ponto de Fundeio Manual:
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] uppercase font-bold text-[#888]">Latitude:</label>
+                            <input
+                              type="text"
+                              value={manualAnchorLat}
+                              onChange={(e) => setManualAnchorLat(e.target.value)}
+                              placeholder={vesselPosition[0].toFixed(5)}
+                              className="w-full p-1 border border-black font-mono text-xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] uppercase font-bold text-[#888]">Longitude:</label>
+                            <input
+                              type="text"
+                              value={manualAnchorLng}
+                              onChange={(e) => setManualAnchorLng(e.target.value)}
+                              placeholder={vesselPosition[1].toFixed(5)}
+                              className="w-full p-1 border border-black font-mono text-xs"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="submit"
+                            className="flex-1 bg-black text-white py-1 text-xs font-bold uppercase border border-black hover:bg-[#333] cursor-pointer"
+                          >
+                            Fixar Âncora
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setManualAnchorLat(vesselPosition[0].toFixed(5));
+                              setManualAnchorLng(vesselPosition[1].toFixed(5));
+                            }}
+                            className="px-2 bg-white text-black py-1 text-[10px] font-bold uppercase border border-black hover:bg-[#eee] cursor-pointer"
+                          >
+                            Usar GPS Barco
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    <button
+                      onClick={() => maritimeAudio.playAnchorDragAlarm()}
+                      className="w-full border-2 border-black bg-white hover:bg-[#eee] p-2 font-mono text-[11px] font-bold uppercase cursor-pointer flex items-center justify-center gap-1.5 text-black"
+                      title="Testar reprodução da sirene de alarme de garreio"
+                    >
+                      <BellRing className="w-3.5 h-3.5 text-[#d42020]" />
+                      <span>TESTAR SIRENE SONORA (ALARME)</span>
+                    </button>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -685,7 +918,7 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
                       <div className="flex items-center justify-between pb-2 border-b border-black/20">
                         <div className="flex items-center gap-1.5 font-bold uppercase">
                           {anchorStatus === 'alarm' ? (
-                            <ShieldAlert className="w-4 h-4 text-[#d42020]" />
+                            <ShieldAlert className="w-4 h-4 text-[#d42020] animate-bounce" />
                           ) : (
                             <ShieldCheck className="w-4 h-4 text-[#008800]" />
                           )}
@@ -693,13 +926,13 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
                           <span
                             className={`px-1.5 py-0.5 text-[10px] text-white ${
                               anchorStatus === 'alarm'
-                                ? 'bg-[#d42020] animate-pulse'
+                                ? 'bg-[#d42020] animate-pulse font-black'
                                 : anchorStatus === 'warning'
                                 ? 'bg-[#d97706]'
                                 : 'bg-[#008800]'
                             }`}
                           >
-                            {anchorStatus === 'alarm' ? 'GARREANDO!' : anchorStatus === 'warning' ? 'EM ATENÇÃO' : 'SEGURA'}
+                            {anchorStatus === 'alarm' ? 'FORA DO RAIO (GARREANDO!)' : anchorStatus === 'warning' ? 'EM ATENÇÃO' : 'DENTRO DO RAIO (SEGURA)'}
                           </span>
                         </div>
 
@@ -717,19 +950,29 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
                       <div className="mt-2.5 space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="text-[#666]">Distância da Âncora:</span>
-                          <strong className={`tabular-nums text-sm ${anchorStatus === 'alarm' ? 'text-[#d42020]' : 'text-black'}`}>
+                          <strong className={`tabular-nums text-sm ${anchorStatus === 'alarm' ? 'text-[#d42020] font-black' : 'text-black'}`}>
                             {currentAnchorDistance}m
                           </strong>
                         </div>
 
                         <div className="flex items-center justify-between">
-                          <span className="text-[#666]">Raio de Segurança:</span>
+                          <span className="text-[#666]">Raio Limite Tolerado:</span>
                           <strong className="tabular-nums">{anchorRadius}m</strong>
                         </div>
 
                         <div className="flex items-center justify-between">
                           <span className="text-[#666]">Marcação (Bearing):</span>
                           <strong className="tabular-nums">{bearingToAnchor}° ({degreesToCardinal(bearingToAnchor)})</strong>
+                        </div>
+
+                        {anchorPosition && (
+                          <div className="text-[10px] text-[#666] pt-1 border-t border-black/10">
+                            Ponto de Fundeio: {anchorPosition[0].toFixed(5)}°, {anchorPosition[1].toFixed(5)}°
+                          </div>
+                        )}
+
+                        <div className="text-[10px] text-[#666]">
+                          GPS do Barco: {vesselPosition[0].toFixed(5)}°, {vesselPosition[1].toFixed(5)}°
                         </div>
 
                         {gpsAccuracy !== null && (
@@ -751,8 +994,8 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
                       <div className="mt-3">
                         <div className="flex justify-between text-[10px] font-bold mb-1">
                           <span>BORNEIO:</span>
-                          <span className={radiusPercentage > 100 ? 'text-[#d42020]' : 'text-black'}>
-                            {radiusPercentage}% DO LIMITE
+                          <span className={radiusPercentage > 100 ? 'text-[#d42020] font-black' : 'text-black'}>
+                            {radiusPercentage}% DO LIMITE {radiusPercentage > 100 && '⚠️'}
                           </span>
                         </div>
                         <div className="w-full bg-[#ddd] h-2.5 border border-black overflow-hidden">
@@ -770,6 +1013,24 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
                       </div>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={handleSimulateDrag}
+                        className="border-2 border-black bg-white hover:bg-[#fee2e2] text-[#d42020] p-2 font-mono text-[11px] font-bold uppercase cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <span>SIMULAR GARREIO</span>
+                      </button>
+
+                      <button
+                        onClick={() => maritimeAudio.playAnchorDragAlarm()}
+                        className="border-2 border-black bg-white hover:bg-[#eee] text-black p-2 font-mono text-[11px] font-bold uppercase cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <BellRing className="w-3.5 h-3.5 text-[#d42020]" />
+                        <span>TOCAR ALARME</span>
+                      </button>
+                    </div>
+
                     {/* Botão de Encerrar Vigia / Levantar Âncora */}
                     <button
                       onClick={handleRaiseAnchor}
@@ -780,118 +1041,29 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
                   </div>
                 )}
 
-                {/* Configuração do Raio de Segurança (Borneio) */}
-                <div className="border-t-2 border-black pt-3">
-                  <div className="flex items-center justify-between mb-1.5 font-mono text-xs">
-                    <span className="font-bold uppercase tracking-wider text-[#666] text-[11px]">
-                      RAIO DE BORNEIO (SEGURANÇA)
-                    </span>
-                    <strong className="text-sm font-black tabular-nums">{anchorRadius}m</strong>
-                  </div>
-
-                  {/* Presets Rápidos */}
-                  <div className="grid grid-cols-5 gap-1 mb-2 font-mono text-xs font-bold">
-                    {[20, 35, 50, 75, 100].map((preset) => (
-                      <button
-                        key={preset}
-                        onClick={() => setAnchorRadius(preset)}
-                        className={`py-1 border border-black cursor-pointer transition-colors ${
-                          anchorRadius === preset
-                            ? 'bg-black text-white'
-                            : 'bg-white hover:bg-[#eee] text-black'
-                        }`}
-                      >
-                        {preset}m
-                      </button>
-                    ))}
-                  </div>
-
-                  <input
-                    type="range"
-                    min="15"
-                    max="150"
-                    step="5"
-                    value={anchorRadius}
-                    onChange={(e) => setAnchorRadius(Number(e.target.value))}
-                    className="w-full accent-black cursor-pointer"
-                  />
-
-                  {/* Recomendação Náutica de Amarra */}
-                  <div className="mt-2.5 p-2 bg-white border border-black text-[11px] font-mono text-[#555] leading-tight flex items-start gap-1.5">
-                    <HelpCircle className="w-3.5 h-3.5 text-black shrink-0 mt-0.5" />
-                    <div>
-                      <span>Profundidade local com maré: <strong>{currentActualWaterDepth.toFixed(1)}m</strong>. </span>
-                      <span>Recomendação de amarra 5:1 = <strong>~{recommendedRodeLength}m</strong> de corrente/cabo.</span>
-                    </div>
+                {/* Recomendação Náutica de Amarra */}
+                <div className="mt-2.5 p-2 bg-white border border-black text-[11px] font-mono text-[#555] leading-tight flex items-start gap-1.5">
+                  <HelpCircle className="w-3.5 h-3.5 text-black shrink-0 mt-0.5" />
+                  <div>
+                    <span>Profundidade local com maré: <strong>{currentActualWaterDepth.toFixed(1)}m</strong>. </span>
+                    <span>Recomendação de amarra 5:1 = <strong>~{recommendedRodeLength}m</strong> de corrente/cabo.</span>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ABA 2: TRAÇADO DE ROTA E WAYPOINTS */}
+            {/* ABA 2: PLANEJADOR DE ROTAS & BATIMETRIA */}
             {activeSidebarTab === 'waypoints' && (
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#666]">
-                    Traçado da Rota
-                  </span>
-                  <span className="font-mono text-xs font-bold text-black border border-black px-1.5 py-0.5 bg-white">
-                    {totalRouteNM.toFixed(2)} Milhas
-                  </span>
-                </div>
-
-                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                  {routeWaypoints.map((wp, index) => {
-                    const actD = wp.chartedDepth + currentTideHeight;
-                    const ukc = actD - vessel.draft;
-                    const isSafe = ukc >= vessel.safetyMargin;
-
-                    return (
-                      <div
-                        key={wp.id}
-                        className="p-2 border-2 border-black bg-white text-xs font-mono flex items-center justify-between shadow-[2px_2px_0px_#000]"
-                      >
-                        <div>
-                          <div className="font-bold flex items-center gap-1.5">
-                            <span className="bg-black text-white px-1 py-0.2 text-[10px]">
-                              {index + 1}
-                            </span>
-                            <span className="truncate max-w-[130px]">{wp.name}</span>
-                          </div>
-                          <div className="text-[10px] text-[#666] mt-0.5">
-                            Prof: {actD.toFixed(1)}m · Folga:{' '}
-                            <span className={isSafe ? 'text-[#008800] font-bold' : 'text-[#d42020] font-bold'}>
-                              +{ukc.toFixed(1)}m
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() =>
-                            setRouteWaypoints(routeWaypoints.filter((w) => w.id !== wp.id))
-                          }
-                          aria-label={`Remover ponto de rota ${wp.name}`}
-                          className="text-black hover:text-[#d42020] p-1 cursor-pointer"
-                          title="Remover ponto"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-2.5 flex items-center justify-between text-xs font-mono">
-                  <button
-                    onClick={() => setRouteWaypoints([])}
-                    className="text-[10px] font-bold uppercase text-[#666] hover:text-black underline cursor-pointer"
-                  >
-                    LIMPAR ROTA
-                  </button>
-                  <span className="text-[10px] text-[#888]">
-                    Clique no mapa para marcar
-                  </span>
-                </div>
-              </div>
+              <RoutePlanner
+                routeWaypoints={routeWaypoints}
+                onUpdateWaypoints={setRouteWaypoints}
+                vessel={vessel}
+                currentTideHeight={currentTideHeight}
+                vesselPosition={vesselPosition}
+                station={station}
+                isDrawingMode={isDrawingRouteMode}
+                onToggleDrawingMode={setIsDrawingRouteMode}
+              />
             )}
 
             {/* ABA 3: CAMADAS CARTOGRÁFICAS */}
@@ -924,6 +1096,18 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
                 <div className="p-2.5 bg-white border border-black text-[11px] text-[#666]">
                   A camada OpenSeaMap exibe bóias cardeais, faróis, balizas e perigos isolados catalogados pela comunidade hidrográfica internacional.
                 </div>
+              </div>
+            )}
+
+            {/* ABA 4: BÚSSOLA DIGITAL NÁUTICA (DEVICE ORIENTATION API) */}
+            {activeSidebarTab === 'compass' && (
+              <div className="space-y-3">
+                <DigitalCompass
+                  currentHeading={vesselHeading}
+                  onHeadingChange={(h) => setVesselHeading(h)}
+                  targetHeading={targetCourse}
+                  onSetTargetHeading={setTargetCourse}
+                />
               </div>
             )}
           </div>

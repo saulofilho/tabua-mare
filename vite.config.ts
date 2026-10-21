@@ -109,6 +109,7 @@ export default defineConfig(() => {
             }
             if (
               id.includes('node_modules/recharts') ||
+              id.includes('node_modules/react-is') ||
               id.includes('node_modules/d3-') ||
               id.includes('node_modules/victory-vendor')
             ) {

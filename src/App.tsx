@@ -892,6 +892,8 @@ export default function App() {
                   : undefined
               }
               currentPressureHpa={1013.25}
+              station={station}
+              userCoords={userCoords}
               onNavigateToTides={() => setActiveTab('tides')}
             />
           </Suspense>

@@ -18,7 +18,10 @@ import {
   HelpCircle,
   Calculator,
   Layers,
+  Zap,
 } from 'lucide-react';
+import { TideStation } from '../types/tide';
+import { WindHistory24hPanel } from './WindHistory24hPanel';
 
 // Fatores de conversão exatos e oficiais (Organização Hidrográfica Internacional & OMM)
 const KNOT_TO_KMH = 1.852;
@@ -67,12 +70,16 @@ export interface NauticalUnitConverterProps {
   currentWindSpeedKnots?: number;
   currentPressureHpa?: number;
   onNavigateToTides?: () => void;
+  station?: TideStation;
+  userCoords?: { lat: number; lng: number };
 }
 
 export const NauticalUnitConverter: React.FC<NauticalUnitConverterProps> = ({
   currentWindSpeedKnots,
   currentPressureHpa,
   onNavigateToTides,
+  station,
+  userCoords,
 }) => {
   // Estado de Conversão de Velocidade
   const [knotsInput, setKnotsInput] = useState<string>(
@@ -108,7 +115,7 @@ export const NauticalUnitConverter: React.FC<NauticalUnitConverterProps> = ({
   const [pressureDelta3h, setPressureDelta3h] = useState<string>('-1.5');
 
   // Aba ativa interna de foco
-  const [activeSubTab, setActiveSubTab] = useState<'all' | 'speed' | 'distance' | 'pressure' | 'depth' | 'calculator'>('all');
+  const [activeSubTab, setActiveSubTab] = useState<'all' | 'speed' | 'wind24h' | 'distance' | 'pressure' | 'depth' | 'calculator'>('all');
 
   // Estado de cópia para feedback visual
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -398,6 +405,18 @@ export const NauticalUnitConverter: React.FC<NauticalUnitConverterProps> = ({
           <span>Velocidade (Nós / km/h)</span>
         </button>
         <button
+          onClick={() => setActiveSubTab('wind24h')}
+          className={`px-3 py-1.5 border-2 border-black dark:border-white transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeSubTab === 'wind24h'
+              ? 'bg-black text-white dark:bg-white dark:text-black shadow-[2px_2px_0px_#d42020]'
+              : 'bg-white dark:bg-[#21262d] text-black dark:text-white hover:bg-[#ddd] dark:hover:bg-[#30363d]'
+          }`}
+          title="Histórico de ventos das últimas 24h e monitoramento de rajadas máximas registradas"
+        >
+          <Zap className="w-3.5 h-3.5 text-[#d42020] animate-pulse" />
+          <span>Histórico 24h & Rajadas</span>
+        </button>
+        <button
           onClick={() => setActiveSubTab('distance')}
           className={`px-3 py-1.5 border-2 border-black dark:border-white transition-all cursor-pointer flex items-center gap-1.5 ${
             activeSubTab === 'distance'
@@ -593,6 +612,29 @@ export const NauticalUnitConverter: React.FC<NauticalUnitConverterProps> = ({
               </div>
             </div>
 
+            {/* Acesso Rápido ao Painel de Rajadas das 24 Horas */}
+            <div className="p-3 bg-black text-white dark:bg-white dark:text-black border border-black dark:border-white flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-[#d42020] animate-pulse" />
+                <span>
+                  <strong>Monitor de Rajadas:</strong> Consulte o histórico retrospectivo das últimas 24h e as rajadas máximas registradas.
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  const el = document.getElementById('wind-history-24h-panel');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  } else {
+                    setActiveSubTab('wind24h');
+                  }
+                }}
+                className="px-3 py-1 bg-[#d42020] hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors whitespace-nowrap"
+              >
+                IR PARA HISTÓRICO 24H ↓
+              </button>
+            </div>
+
             {/* Escala Beaufort Conectada ao Valor de Velocidade */}
             <div className="p-3 bg-[#f8f7f4] dark:bg-[#0d1117] border-2 border-black dark:border-[#30363d] space-y-2">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -623,6 +665,22 @@ export const NauticalUnitConverter: React.FC<NauticalUnitConverterProps> = ({
               </div>
             </div>
           </div>
+        )}
+
+        {/* SEÇÃO DE HISTÓRICO DE VENTOS DE 24H & RAJADAS MÁXIMAS REGISTRADAS */}
+        {(activeSubTab === 'all' || activeSubTab === 'wind24h' || activeSubTab === 'speed') && (
+          <WindHistory24hPanel
+            station={station}
+            userCoords={userCoords}
+            onApplyToConverter={(knots) => {
+              handleKnotsChange(knots.toFixed(1));
+              const el = document.getElementById('input-knots');
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.focus();
+              }
+            }}
+          />
         )}
 
         {/* SEÇÃO 2: DISTÂNCIA NÁUTICA (MILHAS NÁUTICAS <-> QUILÔMETROS) */}

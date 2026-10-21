@@ -461,3 +461,314 @@ export async function fetch24HourWaveWindForecast(
   // Graceful fallback
   return generateFallback24hForecast(lat, lng);
 }
+
+export interface HourlyPastWindReport {
+  timeStr: string; // "14:00"
+  fullLabel: string; // "Hoje às 14:00" ou "Ontem às 22:00"
+  hour: number;
+  dateStr: string; // "Hoje" / "Ontem"
+  timestamp: number;
+  windSpeedKmH: number;
+  windSpeedKnots: number;
+  windSpeedMs: number;
+  windSpeedMph: number;
+  windGustsKmH: number;
+  windGustsKnots: number;
+  windGustsMs: number;
+  windGustsMph: number;
+  windDirectionDeg: number;
+  windDirectionCardinal: string;
+  gustFactor: number;
+  beaufortScale: number;
+  beaufortName: string;
+  severity: 'calm' | 'safe' | 'caution' | 'warning' | 'danger';
+  isPeakGust?: boolean;
+}
+
+export interface Past24hWindHistory {
+  reports: HourlyPastWindReport[];
+  peakGustKnots: number;
+  peakGustKmH: number;
+  peakGustMs: number;
+  peakGustMph: number;
+  peakGustTime: string;
+  peakGustTimestamp: number;
+  peakGustDirectionDeg: number;
+  peakGustDirectionCardinal: string;
+  peakGustBeaufortName: string;
+  peakGustBeaufortScale: number;
+  avgWindKnots: number;
+  avgWindKmH: number;
+  avgGustKnots: number;
+  avgGustKmH: number;
+  minWindKnots: number;
+  minWindKmH: number;
+  prevailingQuadrant: string;
+  maxGustFactor: number;
+  lastUpdated: string;
+  source: string;
+}
+
+function degToCardinal(deg: number): string {
+  const cardinals = [
+    'N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+    'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW',
+  ];
+  const normalized = ((deg % 360) + 360) % 360;
+  const index = Math.round(normalized / 22.5) % 16;
+  return cardinals[index];
+}
+
+function classifyBeaufortSeverity(knots: number): {
+  scale: number;
+  name: string;
+  severity: 'calm' | 'safe' | 'caution' | 'warning' | 'danger';
+} {
+  if (knots < 1) return { scale: 0, name: 'Calmaria', severity: 'calm' };
+  if (knots <= 3) return { scale: 1, name: 'Aragem / Bafagem', severity: 'safe' };
+  if (knots <= 6) return { scale: 2, name: 'Brisa Leve', severity: 'safe' };
+  if (knots <= 10) return { scale: 3, name: 'Brisa Fraca', severity: 'safe' };
+  if (knots <= 16) return { scale: 4, name: 'Brisa Moderada', severity: 'safe' };
+  if (knots <= 21) return { scale: 5, name: 'Brisa Fresca', severity: 'caution' };
+  if (knots <= 27) return { scale: 6, name: 'Vento Fresco', severity: 'caution' };
+  if (knots <= 33) return { scale: 7, name: 'Vento Forte', severity: 'warning' };
+  if (knots <= 40) return { scale: 8, name: 'Vendaval', severity: 'warning' };
+  if (knots <= 47) return { scale: 9, name: 'Vendaval Forte', severity: 'danger' };
+  if (knots <= 55) return { scale: 10, name: 'Tempestade', severity: 'danger' };
+  if (knots <= 63) return { scale: 11, name: 'Tempestade Violenta', severity: 'danger' };
+  return { scale: 12, name: 'Furacão', severity: 'danger' };
+}
+
+/**
+ * Generates realistic fallback 24h past wind & registered gusts
+ */
+function generateFallbackPast24hWind(lat: number, lng: number): Past24hWindHistory {
+  const reports: HourlyPastWindReport[] = [];
+  const now = new Date();
+  const seed = Math.abs(Math.sin(lat * 11.23 + lng * 47.89 + now.getDate())) * 10;
+  const baseSustainedKmH = 15 + (seed % 10); // 15 - 25 km/h
+  const baseDirection = Math.round((110 + (seed * 20)) % 360); // ESE quadrant standard on coast
+
+  for (let i = 23; i >= 0; i--) {
+    const pastTime = new Date(now.getTime() - i * 3600 * 1000);
+    const h = pastTime.getHours();
+    const isToday = pastTime.getDate() === now.getDate();
+    const dayLabel = isToday ? 'Hoje' : 'Ontem';
+
+    // Diurnal breeze factor (peaking 13:00 - 16:00, lowest 04:00 - 06:00)
+    const diurnalFactor = Math.sin(((h - 6) / 24) * 2 * Math.PI) * 6;
+    const microTurbulence = Math.sin(i * 1.3) * 2.5;
+    const speedKmH = Math.max(6, Math.round((baseSustainedKmH + diurnalFactor + microTurbulence) * 10) / 10);
+    const speedKnots = Math.round((speedKmH / 1.852) * 10) / 10;
+    const speedMs = Math.round((speedKmH / 3.6) * 10) / 10;
+    const speedMph = Math.round((speedKmH * 0.621371) * 10) / 10;
+
+    // Gust factor: gusts are 1.4x to 2.1x sustained wind with sudden squalls
+    const gustMultiplier = 1.45 + Math.abs(Math.sin(i * 0.9)) * 0.55;
+    const gustKmH = Math.round(speedKmH * gustMultiplier * 10) / 10;
+    const gustKnots = Math.round((gustKmH / 1.852) * 10) / 10;
+    const gustMs = Math.round((gustKmH / 3.6) * 10) / 10;
+    const gustMph = Math.round((gustKmH * 0.621371) * 10) / 10;
+
+    const dirDeg = (baseDirection + Math.round(Math.sin(i * 0.5) * 25) + 360) % 360;
+    const cardinal = degToCardinal(dirDeg);
+    const beaufort = classifyBeaufortSeverity(gustKnots);
+
+    reports.push({
+      timeStr: `${h.toString().padStart(2, '0')}:00`,
+      fullLabel: `${dayLabel} às ${h.toString().padStart(2, '0')}:00`,
+      hour: h,
+      dateStr: dayLabel,
+      timestamp: pastTime.getTime(),
+      windSpeedKmH: speedKmH,
+      windSpeedKnots: speedKnots,
+      windSpeedMs: speedMs,
+      windSpeedMph: speedMph,
+      windGustsKmH: gustKmH,
+      windGustsKnots: gustKnots,
+      windGustsMs: gustMs,
+      windGustsMph: gustMph,
+      windDirectionDeg: dirDeg,
+      windDirectionCardinal: cardinal,
+      gustFactor: Math.round((gustKmH / speedKmH) * 100) / 100,
+      beaufortScale: beaufort.scale,
+      beaufortName: beaufort.name,
+      severity: beaufort.severity,
+    });
+  }
+
+  // Find peak gust
+  let maxGustReport = reports[0];
+  for (const r of reports) {
+    if (r.windGustsKnots > maxGustReport.windGustsKnots) {
+      maxGustReport = r;
+    }
+  }
+  maxGustReport.isPeakGust = true;
+
+  const totalWindKnots = reports.reduce((acc, r) => acc + r.windSpeedKnots, 0);
+  const totalGustKnots = reports.reduce((acc, r) => acc + r.windGustsKnots, 0);
+  const minWind = Math.min(...reports.map((r) => r.windSpeedKnots));
+  const maxFactor = Math.max(...reports.map((r) => r.gustFactor));
+
+  return {
+    reports,
+    peakGustKnots: maxGustReport.windGustsKnots,
+    peakGustKmH: maxGustReport.windGustsKmH,
+    peakGustMs: maxGustReport.windGustsMs,
+    peakGustMph: maxGustReport.windGustsMph,
+    peakGustTime: maxGustReport.fullLabel,
+    peakGustTimestamp: maxGustReport.timestamp,
+    peakGustDirectionDeg: maxGustReport.windDirectionDeg,
+    peakGustDirectionCardinal: maxGustReport.windDirectionCardinal,
+    peakGustBeaufortName: maxGustReport.beaufortName,
+    peakGustBeaufortScale: maxGustReport.beaufortScale,
+    avgWindKnots: Math.round((totalWindKnots / reports.length) * 10) / 10,
+    avgWindKmH: Math.round(((totalWindKnots / reports.length) * 1.852) * 10) / 10,
+    avgGustKnots: Math.round((totalGustKnots / reports.length) * 10) / 10,
+    avgGustKmH: Math.round(((totalGustKnots / reports.length) * 1.852) * 10) / 10,
+    minWindKnots: minWind,
+    minWindKmH: Math.round((minWind * 1.852) * 10) / 10,
+    prevailingQuadrant: maxGustReport.windDirectionCardinal,
+    maxGustFactor: maxFactor,
+    lastUpdated: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    source: 'Modelo Hidrometeorológico Costeiro (Simulação Harmônica 24h)',
+  };
+}
+
+/**
+ * Fetches real 24-hour retrospective wind speed and registered peak gusts from Open-Meteo
+ */
+export async function fetch24HourPastWindHistory(
+  lat: number,
+  lng: number
+): Promise<Past24hWindHistory> {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m&past_days=1&forecast_days=1&timezone=auto`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      const times: string[] = data.hourly?.time || [];
+      const speeds: (number | null)[] = data.hourly?.wind_speed_10m || [];
+      const gusts: (number | null)[] = data.hourly?.wind_gusts_10m || [];
+      const directions: (number | null)[] = data.hourly?.wind_direction_10m || [];
+
+      if (times.length > 0 && speeds.length > 0) {
+        const now = new Date();
+        const nowMs = now.getTime();
+
+        // Filter for the 24 hours preceding now (inclusive of current/latest available hour)
+        const matchedIndices: number[] = [];
+        for (let i = 0; i < times.length; i++) {
+          const tMs = new Date(times[i]).getTime();
+          // Within past 24 hours (with 15 min leeway)
+          if (tMs <= nowMs + 15 * 60 * 1000 && tMs >= nowMs - 24.5 * 3600 * 1000) {
+            matchedIndices.push(i);
+          }
+        }
+
+        // Keep last 24 entries
+        const targetIndices = matchedIndices.slice(-24);
+
+        if (targetIndices.length >= 12) {
+          const reports: HourlyPastWindReport[] = [];
+
+          for (const idx of targetIndices) {
+            const timeIso = times[idx];
+            const d = new Date(timeIso);
+            const h = d.getHours();
+            const isToday = d.getDate() === now.getDate();
+            const dayLabel = isToday ? 'Hoje' : 'Ontem';
+
+            const rawSpeedKmH = typeof speeds[idx] === 'number' && !isNaN(speeds[idx]!) ? speeds[idx]! : 12;
+            let rawGustKmH = typeof gusts[idx] === 'number' && !isNaN(gusts[idx]!) ? gusts[idx]! : rawSpeedKmH * 1.5;
+            if (rawGustKmH < rawSpeedKmH) {
+              rawGustKmH = rawSpeedKmH * 1.25;
+            }
+
+            const rawDir = typeof directions[idx] === 'number' && !isNaN(directions[idx]!) ? Math.round(directions[idx]!) : 120;
+
+            const speedKmH = Math.round(rawSpeedKmH * 10) / 10;
+            const speedKnots = Math.round((speedKmH / 1.852) * 10) / 10;
+            const speedMs = Math.round((speedKmH / 3.6) * 10) / 10;
+            const speedMph = Math.round((speedKmH * 0.621371) * 10) / 10;
+
+            const gustKmH = Math.round(rawGustKmH * 10) / 10;
+            const gustKnots = Math.round((gustKmH / 1.852) * 10) / 10;
+            const gustMs = Math.round((gustKmH / 3.6) * 10) / 10;
+            const gustMph = Math.round((gustKmH * 0.621371) * 10) / 10;
+
+            const cardinal = degToCardinal(rawDir);
+            const beaufort = classifyBeaufortSeverity(gustKnots);
+            const gustFactor = speedKmH > 0 ? Math.round((gustKmH / speedKmH) * 100) / 100 : 1.0;
+
+            reports.push({
+              timeStr: `${h.toString().padStart(2, '0')}:00`,
+              fullLabel: `${dayLabel} às ${h.toString().padStart(2, '0')}:00`,
+              hour: h,
+              dateStr: dayLabel,
+              timestamp: d.getTime(),
+              windSpeedKmH: speedKmH,
+              windSpeedKnots: speedKnots,
+              windSpeedMs: speedMs,
+              windSpeedMph: speedMph,
+              windGustsKmH: gustKmH,
+              windGustsKnots: gustKnots,
+              windGustsMs: gustMs,
+              windGustsMph: gustMph,
+              windDirectionDeg: rawDir,
+              windDirectionCardinal: cardinal,
+              gustFactor,
+              beaufortScale: beaufort.scale,
+              beaufortName: beaufort.name,
+              severity: beaufort.severity,
+            });
+          }
+
+          // Identify peak gust
+          let maxGustReport = reports[0];
+          for (const r of reports) {
+            if (r.windGustsKnots > maxGustReport.windGustsKnots) {
+              maxGustReport = r;
+            }
+          }
+          maxGustReport.isPeakGust = true;
+
+          const totalWindKnots = reports.reduce((acc, r) => acc + r.windSpeedKnots, 0);
+          const totalGustKnots = reports.reduce((acc, r) => acc + r.windGustsKnots, 0);
+          const minWind = Math.min(...reports.map((r) => r.windSpeedKnots));
+          const maxFactor = Math.max(...reports.map((r) => r.gustFactor));
+
+          return {
+            reports,
+            peakGustKnots: maxGustReport.windGustsKnots,
+            peakGustKmH: maxGustReport.windGustsKmH,
+            peakGustMs: maxGustReport.windGustsMs,
+            peakGustMph: maxGustReport.windGustsMph,
+            peakGustTime: maxGustReport.fullLabel,
+            peakGustTimestamp: maxGustReport.timestamp,
+            peakGustDirectionDeg: maxGustReport.windDirectionDeg,
+            peakGustDirectionCardinal: maxGustReport.windDirectionCardinal,
+            peakGustBeaufortName: maxGustReport.beaufortName,
+            peakGustBeaufortScale: maxGustReport.beaufortScale,
+            avgWindKnots: Math.round((totalWindKnots / reports.length) * 10) / 10,
+            avgWindKmH: Math.round(((totalWindKnots / reports.length) * 1.852) * 10) / 10,
+            avgGustKnots: Math.round((totalGustKnots / reports.length) * 10) / 10,
+            avgGustKmH: Math.round(((totalGustKnots / reports.length) * 1.852) * 10) / 10,
+            minWindKnots: minWind,
+            minWindKmH: Math.round((minWind * 1.852) * 10) / 10,
+            prevailingQuadrant: maxGustReport.windDirectionCardinal,
+            maxGustFactor: maxFactor,
+            lastUpdated: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            source: 'Open-Meteo Weather API (Estações & Modelos Meteorológicos)',
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Real past 24h wind history API error:', err);
+  }
+
+  return generateFallbackPast24hWind(lat, lng);
+}
+

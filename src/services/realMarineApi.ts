@@ -12,6 +12,7 @@ export interface RealMarineConditions {
   weatherDescription?: string; // e.g. Ensolarado, Parcialmente Nublado
   weatherCode?: number; // WMO weather code
   windSpeedKmH?: number;
+  surfacePressureHpa?: number; // Barometric pressure at sea level in hPa/mb
   source: 'Open-Meteo Marine (NOAA / ECMWF Oceanographic Model)' | 'Local Coastal Sensor';
   lastUpdated: string;
 }
@@ -164,9 +165,11 @@ export async function fetchRealMarineConditions(
     console.warn('Real marine API call error:', err);
   }
 
-  // 2. Fetch Atmospheric Weather data (Air temperature, apparent temp, humidity, weather code, wind)
+  let surfacePressureHpa: number | undefined;
+
+  // 2. Fetch Atmospheric Weather data (Air temperature, apparent temp, humidity, weather code, wind, surface pressure)
   try {
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m&timezone=auto`;
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure&timezone=auto`;
     const weatherRes = await fetch(weatherUrl);
     if (weatherRes.ok) {
       const wData = await weatherRes.json();
@@ -186,6 +189,9 @@ export async function fetchRealMarineConditions(
         }
         if (typeof wCurrent.wind_speed_10m === 'number') {
           windSpeedKmH = Math.round(wCurrent.wind_speed_10m);
+        }
+        if (typeof wCurrent.surface_pressure === 'number') {
+          surfacePressureHpa = Math.round(wCurrent.surface_pressure * 10) / 10;
         }
       }
     }
@@ -222,6 +228,7 @@ export async function fetchRealMarineConditions(
     weatherCode,
     weatherDescription: getWeatherDescriptionFromCode(weatherCode),
     windSpeedKmH,
+    surfacePressureHpa,
     source: 'Open-Meteo Marine (NOAA / ECMWF Oceanographic Model)',
     lastUpdated: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
   };

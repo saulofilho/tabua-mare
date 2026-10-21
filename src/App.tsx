@@ -590,28 +590,28 @@ export default function App() {
 
     switch (activeTab) {
       case 'tides':
-        title = `Maré em ${loc} (${station.state}) - Tábua de Marés | MaréSegura`;
-        description = `Consulte a tábua de marés em tempo real para ${loc} (${station.state}), previsão oficial DHN, curva horária astronômica e ondulação do mar.`;
+        title = `Tábua de Marés em ${loc} (${station.state}) | MaréSegura`;
+        description = `Consulte a tábua de marés astronômica em tempo real para ${loc} (${station.state}), previsão oficial DHN, histórico de 7 dias, curva horária e ondulação do mar.`;
         break;
       case 'map':
-        title = `Carta Náutica & GPS Offline - ${loc} | MaréSegura`;
-        description = `Cartas náuticas eletrônicas com sinalização OpenSeaMap, waypoints, vigia de âncora e GPS náutico para ${loc}.`;
+        title = `Carta Náutica, Bússola & Rotas – ${loc} | MaréSegura`;
+        description = `Cartas náuticas eletrônicas com sinalização OpenSeaMap, vigia de âncora com alarme, planejador de rotas com waypoints e bússola digital para ${loc}.`;
         break;
       case 'logbook':
-        title = 'Diário de Bordo Náutico & Histórico de Navegação | MaréSegura';
-        description = 'Livro de registro e diário de bordo eletrônico náutico com telemetria automática de vento, maré e condições do mar.';
+        title = 'Diário de Bordo Náutico & Registro de Viagens | MaréSegura';
+        description = 'Livro de registro e diário de bordo eletrônico de navegação com telemetria automática de vento, maré, waypoints e condições marítimas.';
         break;
       case 'alerts':
         title = 'Central de Alertas & Folga sob a Quilha (UKC) | MaréSegura';
-        description = 'Configuração de alarmes náuticos sonoros para profundidade mínima, folga sob a quilha (UKC) e picos de maré alta.';
+        description = 'Configuração de alarmes náuticos sonoros para profundidade mínima, folga sob a quilha (UKC), correnteza e picos de maré alta.';
         break;
       case 'offline':
         title = 'Gerenciador de Cartas e Mapas Offline | MaréSegura';
-        description = 'Baixe cartas náuticas e tábuas astronômicas para uso 100% offline em alto-mar sem necessidade de sinal celular.';
+        description = 'Baixe cartas náuticas e tábuas astronômicas para navegação segura 100% offline em alto-mar sem necessidade de sinal celular.';
         break;
       case 'converter':
-        title = 'Conversor de Unidades Náuticas (Nós, Milhas, Pressão) | MaréSegura';
-        description = 'Conversor tático de unidades marítimas: nós para km/h, milhas náuticas para km, hPa para milibar com régua de Beaufort.';
+        title = 'Conversor de Unidades Náuticas & Histórico de Ventos 24h | MaréSegura';
+        description = 'Conversor de nós para km/h, milhas náuticas, hPa, régua Beaufort e histórico retrospectivo de 24h com rajadas máximas registradas.';
         break;
     }
 

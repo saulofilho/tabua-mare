@@ -96,7 +96,6 @@ export default defineConfig(() => {
             (dep) =>
               !dep.includes('vendor-recharts') &&
               !dep.includes('vendor-leaflet') &&
-              !dep.includes('RechartsWaveWindGraph') &&
               !dep.includes('LeafletNauticalMap')
           );
         },

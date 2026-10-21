@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Waves,
   Wind,
@@ -18,9 +18,8 @@ import {
   getWaveCondition,
 } from '../services/realMarineApi';
 import { TideStation } from '../types/tide';
-
-// Code-splitting via React.lazy() do motor gráfico Recharts
-const RechartsWaveWindGraph = lazy(() => import('./RechartsWaveWindGraph'));
+import TacticalErrorBoundary from './TacticalErrorBoundary';
+import { RechartsWaveWindGraph } from './RechartsWaveWindGraph';
 
 interface WaveWindForecastBarChartProps {
   station: TideStation;
@@ -287,23 +286,14 @@ export const WaveWindForecastBarChart: React.FC<WaveWindForecastBarChartProps> =
           </div>
         ) : (
           <div className="w-full">
-            <Suspense
-              fallback={
-                <div className="h-[320px] w-full flex flex-col items-center justify-center gap-3 bg-[#f8f7f4] dark:bg-[#161b22] border-2 border-black/10 dark:border-white/10 font-mono text-xs">
-                  <RefreshCw className="w-6 h-6 animate-spin text-[#d42020]" />
-                  <span className="font-bold uppercase tracking-wider text-[#666] dark:text-[#aaa]">
-                    Inicializando gráficos Recharts...
-                  </span>
-                </div>
-              }
-            >
+            <TacticalErrorBoundary fallbackTitle="Falha ao carregar gráfico Recharts">
               <RechartsWaveWindGraph
                 forecast={forecast}
                 displayMode={displayMode}
                 selectedHour={selectedHour}
                 onSelectHour={setSelectedHour}
               />
-            </Suspense>
+            </TacticalErrorBoundary>
 
             {/* Painel de Detalhes da Hora Selecionada (ao clicar ou interagir) */}
             {selectedHour && (

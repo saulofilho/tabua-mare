@@ -42,10 +42,11 @@ import {
 import { analytics } from './services/analytics';
 import { alertNotificationService } from './services/alertNotificationService';
 import { Download } from 'lucide-react';
+import WaveWindForecastBarChart from './components/WaveWindForecastBarChart';
+import TacticalErrorBoundary from './components/TacticalErrorBoundary';
 
-// Code-splitting via React.lazy() para carregamento sob demanda e performance WebAudit
+// Code-splitting via React.lazy() para abas secundárias sob demanda e performance WebAudit
 const NauticalMapView = lazy(() => import('./components/NauticalMapView'));
-const WaveWindForecastBarChart = lazy(() => import('./components/WaveWindForecastBarChart'));
 const NavigationLogbook = lazy(() => import('./components/NavigationLogbook'));
 const AlertsManager = lazy(() => import('./components/AlertsManager'));
 const NauticalUnitConverter = lazy(() => import('./components/NauticalUnitConverter'));
@@ -712,9 +713,9 @@ export default function App() {
               currentTime={currentTime}
             />
 
-            {/* PREVISÃO DE ONDAS E VELOCIDADE DO VENTO 24H (GRÁFICO DE BARRAS RECHARTS SOB DEMANDA) */}
-            <LazyViewportContainer fallback={<WaveWindChartSkeleton />}>
-              <Suspense fallback={<WaveWindChartSkeleton />}>
+            {/* PREVISÃO DE ONDAS E VELOCIDADE DO VENTO 24H (TELEMETRIA OCEÂNICA) */}
+            <TacticalErrorBoundary fallbackTitle="Previsão de Ondas e Ventos">
+              <LazyViewportContainer fallback={<WaveWindChartSkeleton />}>
                 <WaveWindForecastBarChart
                   station={station}
                   beachLat={selectedBeach?.lat}
@@ -722,8 +723,8 @@ export default function App() {
                   locationName={selectedBeach?.name || station.name}
                   isOfflineMode={isOfflineMode}
                 />
-              </Suspense>
-            </LazyViewportContainer>
+              </LazyViewportContainer>
+            </TacticalErrorBoundary>
 
             {/* REPRESENTAÇÃO VISUAL DA MARÉ (Corte Transversal & Coluna d'Água) */}
             <VisualTideGauge
@@ -747,7 +748,7 @@ export default function App() {
 
         {/* Tab 2: Carta Náutica & GPS (Leaflet code-split) */}
         {activeTab === 'map' && (
-          <div>
+          <TacticalErrorBoundary fallbackTitle="Falha ao carregar Carta Náutica">
             <Suspense fallback={<RadarMapSkeleton />}>
               <NauticalMapView
                 station={station}
@@ -757,12 +758,12 @@ export default function App() {
                 onOpenDownloadModal={() => setIsOfflineModalOpen(true)}
               />
             </Suspense>
-          </div>
+          </TacticalErrorBoundary>
         )}
 
         {/* Tab 3: Diário de Navegação */}
         {activeTab === 'logbook' && (
-          <div>
+          <TacticalErrorBoundary fallbackTitle="Falha ao carregar Diário de Bordo">
             <Suspense
               fallback={
                 <TabModuleSkeleton
@@ -784,12 +785,12 @@ export default function App() {
                 activeBeachName={selectedBeach.name}
               />
             </Suspense>
-          </div>
+          </TacticalErrorBoundary>
         )}
 
         {/* Tab 4: Alertas */}
         {activeTab === 'alerts' && (
-          <div>
+          <TacticalErrorBoundary fallbackTitle="Falha ao carregar Central de Alertas">
             <Suspense
               fallback={
                 <TabModuleSkeleton
@@ -806,7 +807,7 @@ export default function App() {
                 vessel={vessel}
               />
             </Suspense>
-          </div>
+          </TacticalErrorBoundary>
         )}
 
         {/* Tab 4: Cartas Offline */}
@@ -877,26 +878,28 @@ export default function App() {
 
         {/* Tab 5: Conversor de Unidades Náuticas */}
         {activeTab === 'converter' && (
-          <Suspense
-            fallback={
-              <TabModuleSkeleton
-                title="Conversor de Unidades Náuticas"
-                subtitle="Calculando conversões de velocidade, distância, pressão barométrica e profundidade..."
-              />
-            }
-          >
-            <NauticalUnitConverter
-              currentWindSpeedKnots={
-                marineConditions?.windSpeedKmH
-                  ? Math.round((marineConditions.windSpeedKmH / 1.852) * 10) / 10
-                  : undefined
+          <TacticalErrorBoundary fallbackTitle="Falha ao carregar Conversor de Unidades">
+            <Suspense
+              fallback={
+                <TabModuleSkeleton
+                  title="Conversor de Unidades Náuticas"
+                  subtitle="Calculando conversões de velocidade, distância, pressão barométrica e profundidade..."
+                />
               }
-              currentPressureHpa={1013.25}
-              station={station}
-              userCoords={userCoords}
-              onNavigateToTides={() => setActiveTab('tides')}
-            />
-          </Suspense>
+            >
+              <NauticalUnitConverter
+                currentWindSpeedKnots={
+                  marineConditions?.windSpeedKmH
+                    ? Math.round((marineConditions.windSpeedKmH / 1.852) * 10) / 10
+                    : undefined
+                }
+                currentPressureHpa={1013.25}
+                station={station}
+                userCoords={userCoords}
+                onNavigateToTides={() => setActiveTab('tides')}
+              />
+            </Suspense>
+          </TacticalErrorBoundary>
         )}
       </div>
 

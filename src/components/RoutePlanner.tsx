@@ -283,47 +283,6 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
     onUpdateWaypoints(routeWaypoints.filter((w) => w.id !== id));
   };
 
-  // Carregar rota predefinida de exemplo
-  const handleLoadPresetRoute = () => {
-    const preset: Waypoint[] = [
-      {
-        id: 'wp-preset-1',
-        name: 'Saída do Canal',
-        lat: station.lat - 0.018,
-        lng: station.lng - 0.015,
-        chartedDepth: 12.0,
-      },
-      {
-        id: 'wp-preset-2',
-        name: 'Bóia de Meio Canal',
-        lat: station.lat - 0.008,
-        lng: station.lng - 0.009,
-        chartedDepth: 6.8,
-      },
-      {
-        id: 'wp-preset-3',
-        name: 'Passagem do Baixio (Crítico)',
-        lat: station.lat - 0.001,
-        lng: station.lng - 0.003,
-        chartedDepth: 1.8, // Calado raso intencional para testar detecção crítica!
-      },
-      {
-        id: 'wp-preset-4',
-        name: 'Aproximação da Marina',
-        lat: station.lat + 0.007,
-        lng: station.lng + 0.004,
-        chartedDepth: 4.5,
-      },
-      {
-        id: 'wp-preset-5',
-        name: 'Trapiche / Píer de Atracação',
-        lat: station.lat + 0.012,
-        lng: station.lng + 0.008,
-        chartedDepth: 3.2,
-      },
-    ];
-    onUpdateWaypoints(preset);
-  };
 
   return (
     <div className="font-mono text-xs space-y-3">
@@ -460,7 +419,7 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
         </div>
 
         {/* Botões Rápidos de Manipulação de Waypoints */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 pt-1">
           <button
             onClick={handleAddVesselAsStart}
             className="p-1.5 border border-black bg-white hover:bg-[#eee] text-black font-bold uppercase text-[10px] flex items-center justify-center gap-1 cursor-pointer"
@@ -478,15 +437,6 @@ export const RoutePlanner: React.FC<RoutePlannerProps> = ({
           >
             <ArrowUpDown className="w-3 h-3" />
             <span>Inverter Rota</span>
-          </button>
-
-          <button
-            onClick={handleLoadPresetRoute}
-            className="p-1.5 border border-black bg-white hover:bg-[#eee] text-black font-bold uppercase text-[10px] flex items-center justify-center gap-1 cursor-pointer"
-            title="Carrega rota costeira de exemplo com canal e baixio"
-          >
-            <Waves className="w-3 h-3 text-[#15803d]" />
-            <span>Rota Exemplo</span>
           </button>
 
           <button

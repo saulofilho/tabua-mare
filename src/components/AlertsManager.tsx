@@ -5,12 +5,15 @@ import {
   CurrentTideStatus,
   TideAlertRule,
   VesselProfile,
+  TideStation,
+  NauticalHazard,
 } from '../types/tide';
 import { maritimeAudio } from '../utils/audioAlerts';
 import {
   alertNotificationService,
   NotificationSettings,
 } from '../services/alertNotificationService';
+import { calculateDistanceMeters } from '../services/realMarineApi';
 import {
   AlertTriangle,
   Bell,
@@ -28,6 +31,9 @@ import {
   Smartphone,
   Zap,
   Loader2,
+  Compass,
+  Navigation,
+  RotateCcw,
 } from 'lucide-react';
 
 interface AlertsManagerProps {
@@ -36,6 +42,10 @@ interface AlertsManagerProps {
   activeAlerts: ActiveAlertNotification[];
   currentStatus: CurrentTideStatus;
   vessel: VesselProfile;
+  station?: TideStation;
+  vesselCoords?: { lat: number; lng: number };
+  onSimulateVesselApproach?: (hazard: NauticalHazard) => void;
+  onResetVesselPosition?: () => void;
 }
 
 export const AlertsManager: React.FC<AlertsManagerProps> = ({
@@ -44,6 +54,10 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
   activeAlerts,
   currentStatus,
   vessel,
+  station,
+  vesselCoords,
+  onSimulateVesselApproach,
+  onResetVesselPosition,
 }) => {
   const [notificationPermission, setNotificationPermission] = useState<
     NotificationPermission | 'unsupported'
@@ -195,6 +209,10 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
       operator = 'greater_than';
       unit = 'nós';
       desc = `Dispara quando a velocidade do vento exceder ${newThreshold.toFixed(1)} nós.`;
+    } else if (newType === 'hazard_proximity') {
+      operator = 'less_than';
+      unit = 'm';
+      desc = `Dispara alerta de geocerca náutica e sirene quando a embarcação estiver a menos de ${newThreshold.toFixed(0)}m de qualquer perigo ou ponto crítico cadastrado na estação.`;
     }
 
     const created: TideAlertRule = {
@@ -573,6 +591,10 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
                     if (t === 'ukc_clearance') setNewThreshold(0.5);
                     if (t === 'strong_current') setNewThreshold(2.5);
                     if (t === 'excessive_wind') setNewThreshold(25);
+                    if (t === 'hazard_proximity') {
+                      setNewThreshold(500);
+                      setNewSound('danger');
+                    }
                   }}
                   className="w-full p-2 border-2 border-black bg-white font-bold cursor-pointer"
                 >
@@ -582,6 +604,7 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
                   <option value="spring_tide">Maré de Sizígia (Lua Cheia ou Nova)</option>
                   <option value="strong_current">Correnteza Forte (Velocidade do Fluxo)</option>
                   <option value="excessive_wind">Vento Excessivo (Velocidade do Vento)</option>
+                  <option value="hazard_proximity">Aproximação de Perigo (Geocerca Náutica 500m)</option>
                 </select>
               </div>
 
@@ -702,6 +725,121 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
           ))}
         </div>
       </div>
+
+      {/* 5. PONTOS CRÍTICOS & GEOCERCA NÁUTICA (500M) */}
+      {station && station.hazards && station.hazards.length > 0 && (
+        <div className="border-2 border-black bg-white p-4 sm:p-5 shadow-[3px_3px_0px_#000] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b-2 border-black">
+            <div>
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-[#d42020]" />
+                <h4 className="font-display text-lg font-bold uppercase text-black">
+                  Perigos Registrados na Estação & Geocerca Náutica
+                </h4>
+              </div>
+              <p className="text-xs text-[#666] mt-0.5">
+                Estação: <strong className="text-black">{station.name}</strong> · Geocerca preventiva ativa a <strong>500 metros</strong> de pedras, baixios e naufrágios.
+              </p>
+            </div>
+
+            {onResetVesselPosition && (
+              <button
+                onClick={onResetVesselPosition}
+                className="px-3 py-1.5 border-2 border-black bg-[#eeebe6] hover:bg-black hover:text-white text-xs font-bold uppercase cursor-pointer flex items-center gap-1.5 transition-colors shrink-0"
+                title="Restaura a posição da embarcação para as coordenadas normais da estação"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>RESTAURAR POSIÇÃO</span>
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {station.hazards.map((h) => {
+              const distM = vesselCoords
+                ? calculateDistanceMeters(vesselCoords.lat, vesselCoords.lng, h.lat, h.lng)
+                : null;
+              const isInsideGeofence = distM !== null && distM <= 500;
+
+              const hazardTypeLabels: Record<string, string> = {
+                rock: 'Pedra / Laje Submersa',
+                shallow: 'Baixio Rochoso',
+                wreck: 'Naufrágio Submerso',
+                sandbank: 'Banco de Areia',
+                buoy: 'Balizamento / Bóia',
+                lighthouse: 'Farol / Costão',
+              };
+
+              return (
+                <div
+                  key={h.id}
+                  className={`p-3.5 border-2 border-black flex flex-col justify-between gap-3 ${
+                    isInsideGeofence
+                      ? 'bg-[#fff5f5] border-[#d42020] shadow-[2px_2px_0px_#d42020]'
+                      : 'bg-[#f8f7f4] shadow-[2px_2px_0px_#000]'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <span className="font-bold text-xs uppercase text-black block">
+                          {h.name}
+                        </span>
+                        <span className="text-[10px] text-[#666] uppercase">
+                          {hazardTypeLabels[h.type] || h.type}
+                        </span>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 text-[9px] font-bold uppercase border border-black shrink-0 ${
+                          isInsideGeofence
+                            ? 'bg-[#d42020] text-white animate-pulse'
+                            : 'bg-white text-black'
+                        }`}
+                      >
+                        {isInsideGeofence ? 'DENTRO DA GEOCERCA (< 500m)' : 'FORA DA GEOCERCA'}
+                      </span>
+                    </div>
+
+                    <div className="mt-2 text-[11px] text-[#444] border-t border-[#ddd] pt-2 flex items-center justify-between">
+                      <span>Prof. Carta: <b>{h.chartedDepth.toFixed(1)}m</b></span>
+                      <span>
+                        Distância Atual:{' '}
+                        <b className={isInsideGeofence ? 'text-[#d42020]' : 'text-black'}>
+                          {distM !== null ? `${Math.round(distM)}m` : '--'}
+                        </b>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-black/10">
+                    {onSimulateVesselApproach && (
+                      <button
+                        onClick={() => {
+                          onSimulateVesselApproach(h);
+                          maritimeAudio.playSound('danger');
+                        }}
+                        className={`w-full py-1.5 px-2 text-xs font-bold uppercase border-2 border-black cursor-pointer flex items-center justify-center gap-1.5 shadow-[1px_1px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 ${
+                          isInsideGeofence
+                            ? 'bg-[#d42020] text-white'
+                            : 'bg-white hover:bg-[#d42020] hover:text-white text-black transition-colors'
+                        }`}
+                        title="Simula a aproximação da embarcação a ~330m para testar a notificação de Aproximação de Perigo"
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                        <span>
+                          {isInsideGeofence
+                            ? 'SIMULAÇÃO ATIVA (< 500m)'
+                            : 'TESTAR APROXIMAÇÃO (< 500m)'}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

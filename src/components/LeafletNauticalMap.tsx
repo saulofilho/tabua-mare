@@ -215,6 +215,21 @@ export const LeafletNauticalMap: React.FC<LeafletNauticalMapProps> = ({
 
       marker.bindPopup(popupContent);
       group.addLayer(marker);
+
+      // Círculo de Geocerca de Segurança Náutica (Perímetro de 500 metros)
+      const geofenceCircle = L.circle([h.lat, h.lng], {
+        radius: 500, // 500 metros de raio de geocerca
+        color: '#d42020',
+        weight: 1.5,
+        dashArray: '5, 5',
+        fillColor: '#d42020',
+        fillOpacity: 0.08,
+      });
+      geofenceCircle.bindTooltip(
+        `🚨 Geocerca de Perigo (500m): ${h.name} [Prof: ${h.chartedDepth.toFixed(1)}m]`,
+        { sticky: true }
+      );
+      group.addLayer(geofenceCircle);
     });
   }, [station, currentTideHeight, vessel.draft, showHazards]);
 

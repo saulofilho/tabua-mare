@@ -80,7 +80,7 @@ export interface VesselProfile {
   airDraft: number; // Calado aéreo em metros (altura do mastro/superestrutura)
 }
 
-export type AlertType = 'high_tide' | 'low_tide' | 'ukc_clearance' | 'spring_tide' | 'strong_current' | 'excessive_wind';
+export type AlertType = 'high_tide' | 'low_tide' | 'ukc_clearance' | 'spring_tide' | 'strong_current' | 'excessive_wind' | 'hazard_proximity';
 
 export interface TideAlertRule {
   id: string;

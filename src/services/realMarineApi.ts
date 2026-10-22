@@ -86,6 +86,28 @@ export function calculateDistanceKm(
 }
 
 /**
+ * Calculates Haversine distance in meters between two geographical coordinates
+ */
+export function calculateDistanceMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371000; // Earth's radius in meters
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+}
+
+/**
  * Converts kilometers to Nautical Miles (Milhas Náuticas - MN)
  */
 export function kmToNauticalMiles(km: number): number {
@@ -125,10 +147,10 @@ export async function fetchRealMarineConditions(
   lat: number,
   lng: number
 ): Promise<RealMarineConditions> {
-  let waveHeightMeters = 1.0;
-  let wavePeriodSeconds = 7.5;
-  let waveDirectionDegrees = 135;
-  let windWaveHeightMeters = 0.4;
+  let waveHeightMeters = 0;
+  let wavePeriodSeconds = 0;
+  let waveDirectionDegrees = 0;
+  let windWaveHeightMeters = 0;
   let oceanWaterTempCelsius: number | undefined;
   let airTempCelsius: number | undefined;
   let apparentTempCelsius: number | undefined;
@@ -199,22 +221,6 @@ export async function fetchRealMarineConditions(
     console.warn('Weather API call error:', err);
   }
 
-  // If ocean water temperature was not provided by marine grid (e.g. enclosed inland lagoon or bay),
-  // coastal water temperature tracks coastal air temperature with ocean thermal inertia:
-  if (oceanWaterTempCelsius === undefined) {
-    if (airTempCelsius !== undefined) {
-      // Typically water temperature along Brazilian coast ranges between 22°C - 27°C
-      oceanWaterTempCelsius = Math.round(Math.min(28.5, Math.max(20.0, airTempCelsius * 0.9 + 2.5)) * 10) / 10;
-    } else {
-      oceanWaterTempCelsius = 25.0; // Brazilian tropical baseline
-    }
-  }
-
-  // Fallback air temp if weather API failed
-  if (airTempCelsius === undefined) {
-    airTempCelsius = 27.0;
-    apparentTempCelsius = 29.0;
-  }
 
   return {
     waveHeightMeters,
@@ -333,51 +339,8 @@ export function getWaveCondition(meters: number): { name: string; level: 'safe' 
 }
 
 /**
- * Generates realistic fallback 24-hour wave and wind forecast
- */
-function generateFallback24hForecast(lat: number, lng: number): HourlyWaveWindForecast[] {
-  const result: HourlyWaveWindForecast[] = [];
-  const now = new Date();
-  const currentHour = now.getHours();
-
-  // Pseudo-random yet deterministic seed based on lat/lng and date
-  const seed = Math.abs(Math.sin(lat * 12.9898 + lng * 78.233 + now.getDate())) * 10;
-  const baseWave = 0.9 + (seed % 0.8); // 0.9m - 1.7m
-  const baseWind = 14 + (seed % 10); // 14km/h - 24km/h
-
-  for (let i = 0; i < 24; i++) {
-    const targetTime = new Date(now.getTime() + i * 3600 * 1000);
-    const h = targetTime.getHours();
-    const isToday = targetTime.getDate() === now.getDate();
-
-    // Diurnal wind breeze: peaks in early afternoon (13:00 - 16:00), lowest in early morning (05:00)
-    const diurnalWindFactor = Math.sin(((h - 6) / 24) * 2 * Math.PI) * 5.5;
-    const windKmH = Math.max(5, Math.round((baseWind + diurnalWindFactor + Math.sin(i * 0.8) * 2) * 10) / 10);
-    const windKnots = Math.round((windKmH / 1.852) * 10) / 10;
-
-    // Wave height fluctuates smoothly with swell and tide cycle
-    const waveFluctuation = Math.sin((h / 12) * Math.PI) * 0.25 + Math.cos(i * 0.5) * 0.15;
-    const waveMeters = Math.max(0.4, Math.round((baseWave + waveFluctuation) * 10) / 10);
-
-    result.push({
-      timeStr: `${h}h`,
-      fullTimeStr: `${h.toString().padStart(2, '0')}:00`,
-      hour: h,
-      dayLabel: isToday ? 'Hoje' : 'Amanhã',
-      timestamp: targetTime.getTime(),
-      waveHeightMeters: waveMeters,
-      windSpeedKmH: windKmH,
-      windSpeedKnots: windKnots,
-      isCurrentHour: i === 0,
-    });
-  }
-
-  return result;
-}
-
-/**
- * Fetches real 24-hour wave height and wind speed forecast from Open-Meteo APIs,
- * with seamless fallback for offline or network issues.
+ * Fetches real 24-hour wave height and wind speed forecast from Open-Meteo APIs.
+ * Returns empty array if real data is unavailable.
  */
 export async function fetch24HourWaveWindForecast(
   lat: number,
@@ -402,16 +365,14 @@ export async function fetch24HourWaveWindForecast(
       weatherData = await weatherRes.value.json();
     }
 
-    if (marineData?.hourly?.time && weatherData?.hourly?.time) {
-      const marineTimes: string[] = marineData.hourly.time;
-      const waveHeights: (number | null)[] = marineData.hourly.wave_height || [];
-      const windSpeeds: (number | null)[] = weatherData.hourly.wind_speed_10m || [];
+    if (marineData?.hourly?.time || weatherData?.hourly?.time) {
+      const times: string[] = marineData?.hourly?.time || weatherData?.hourly?.time || [];
+      const waveHeights: (number | null)[] = marineData?.hourly?.wave_height || [];
+      const windSpeeds: (number | null)[] = weatherData?.hourly?.wind_speed_10m || [];
 
       const now = new Date();
-      // Match starting hour index in API ISO format "YYYY-MM-DDTHH:00"
-      const currentIsoHourPrefix = now.toISOString().slice(0, 13); // e.g. "2026-10-11T18"
 
-      let startIndex = marineTimes.findIndex((t) => {
+      let startIndex = times.findIndex((t) => {
         const itemDate = new Date(t);
         return itemDate.getTime() >= now.getTime() - 30 * 60 * 1000;
       });
@@ -421,27 +382,18 @@ export async function fetch24HourWaveWindForecast(
       }
 
       const items: HourlyWaveWindForecast[] = [];
-      const totalAvailable = Math.min(marineTimes.length, startIndex + 24);
 
-      for (let i = startIndex; i < startIndex + 24 && i < marineTimes.length; i++) {
-        const tStr = marineTimes[i];
+      for (let i = startIndex; i < startIndex + 24 && i < times.length; i++) {
+        const tStr = times[i];
         const dateObj = new Date(tStr);
         const h = dateObj.getHours();
         const isToday = dateObj.getDate() === now.getDate();
 
-        // Wave height with fallback
-        let rawWave = waveHeights[i];
-        if (typeof rawWave !== 'number' || isNaN(rawWave)) {
-          rawWave = 1.0;
-        }
-        const waveHeightMeters = Math.round(rawWave * 10) / 10;
+        const rawWave = waveHeights[i];
+        const waveHeightMeters = typeof rawWave === 'number' && !isNaN(rawWave) ? Math.round(rawWave * 10) / 10 : 0;
 
-        // Wind speed with fallback
-        let rawWind = windSpeeds[i];
-        if (typeof rawWind !== 'number' || isNaN(rawWind)) {
-          rawWind = 15;
-        }
-        const windSpeedKmH = Math.round(rawWind * 10) / 10;
+        const rawWind = windSpeeds[i];
+        const windSpeedKmH = typeof rawWind === 'number' && !isNaN(rawWind) ? Math.round(rawWind * 10) / 10 : 0;
         const windSpeedKnots = Math.round((windSpeedKmH / 1.852) * 10) / 10;
 
         items.push({
@@ -457,16 +409,15 @@ export async function fetch24HourWaveWindForecast(
         });
       }
 
-      if (items.length >= 20) {
+      if (items.length > 0) {
         return items;
       }
     }
   } catch (err) {
-    console.warn('Could not fetch online 24h wave/wind forecast, using oceanic harmonics model:', err);
+    console.warn('Could not fetch online 24h wave/wind forecast:', err);
   }
 
-  // Graceful fallback
-  return generateFallback24hForecast(lat, lng);
+  return [];
 }
 
 export interface HourlyPastWindReport {
@@ -546,102 +497,7 @@ function classifyBeaufortSeverity(knots: number): {
   return { scale: 12, name: 'Furacão', severity: 'danger' };
 }
 
-/**
- * Generates realistic fallback 24h past wind & registered gusts
- */
-function generateFallbackPast24hWind(lat: number, lng: number): Past24hWindHistory {
-  const reports: HourlyPastWindReport[] = [];
-  const now = new Date();
-  const seed = Math.abs(Math.sin(lat * 11.23 + lng * 47.89 + now.getDate())) * 10;
-  const baseSustainedKmH = 15 + (seed % 10); // 15 - 25 km/h
-  const baseDirection = Math.round((110 + (seed * 20)) % 360); // ESE quadrant standard on coast
 
-  for (let i = 23; i >= 0; i--) {
-    const pastTime = new Date(now.getTime() - i * 3600 * 1000);
-    const h = pastTime.getHours();
-    const isToday = pastTime.getDate() === now.getDate();
-    const dayLabel = isToday ? 'Hoje' : 'Ontem';
-
-    // Diurnal breeze factor (peaking 13:00 - 16:00, lowest 04:00 - 06:00)
-    const diurnalFactor = Math.sin(((h - 6) / 24) * 2 * Math.PI) * 6;
-    const microTurbulence = Math.sin(i * 1.3) * 2.5;
-    const speedKmH = Math.max(6, Math.round((baseSustainedKmH + diurnalFactor + microTurbulence) * 10) / 10);
-    const speedKnots = Math.round((speedKmH / 1.852) * 10) / 10;
-    const speedMs = Math.round((speedKmH / 3.6) * 10) / 10;
-    const speedMph = Math.round((speedKmH * 0.621371) * 10) / 10;
-
-    // Gust factor: gusts are 1.4x to 2.1x sustained wind with sudden squalls
-    const gustMultiplier = 1.45 + Math.abs(Math.sin(i * 0.9)) * 0.55;
-    const gustKmH = Math.round(speedKmH * gustMultiplier * 10) / 10;
-    const gustKnots = Math.round((gustKmH / 1.852) * 10) / 10;
-    const gustMs = Math.round((gustKmH / 3.6) * 10) / 10;
-    const gustMph = Math.round((gustKmH * 0.621371) * 10) / 10;
-
-    const dirDeg = (baseDirection + Math.round(Math.sin(i * 0.5) * 25) + 360) % 360;
-    const cardinal = degToCardinal(dirDeg);
-    const beaufort = classifyBeaufortSeverity(gustKnots);
-
-    reports.push({
-      timeStr: `${h.toString().padStart(2, '0')}:00`,
-      fullLabel: `${dayLabel} às ${h.toString().padStart(2, '0')}:00`,
-      hour: h,
-      dateStr: dayLabel,
-      timestamp: pastTime.getTime(),
-      windSpeedKmH: speedKmH,
-      windSpeedKnots: speedKnots,
-      windSpeedMs: speedMs,
-      windSpeedMph: speedMph,
-      windGustsKmH: gustKmH,
-      windGustsKnots: gustKnots,
-      windGustsMs: gustMs,
-      windGustsMph: gustMph,
-      windDirectionDeg: dirDeg,
-      windDirectionCardinal: cardinal,
-      gustFactor: Math.round((gustKmH / speedKmH) * 100) / 100,
-      beaufortScale: beaufort.scale,
-      beaufortName: beaufort.name,
-      severity: beaufort.severity,
-    });
-  }
-
-  // Find peak gust
-  let maxGustReport = reports[0];
-  for (const r of reports) {
-    if (r.windGustsKnots > maxGustReport.windGustsKnots) {
-      maxGustReport = r;
-    }
-  }
-  maxGustReport.isPeakGust = true;
-
-  const totalWindKnots = reports.reduce((acc, r) => acc + r.windSpeedKnots, 0);
-  const totalGustKnots = reports.reduce((acc, r) => acc + r.windGustsKnots, 0);
-  const minWind = Math.min(...reports.map((r) => r.windSpeedKnots));
-  const maxFactor = Math.max(...reports.map((r) => r.gustFactor));
-
-  return {
-    reports,
-    peakGustKnots: maxGustReport.windGustsKnots,
-    peakGustKmH: maxGustReport.windGustsKmH,
-    peakGustMs: maxGustReport.windGustsMs,
-    peakGustMph: maxGustReport.windGustsMph,
-    peakGustTime: maxGustReport.fullLabel,
-    peakGustTimestamp: maxGustReport.timestamp,
-    peakGustDirectionDeg: maxGustReport.windDirectionDeg,
-    peakGustDirectionCardinal: maxGustReport.windDirectionCardinal,
-    peakGustBeaufortName: maxGustReport.beaufortName,
-    peakGustBeaufortScale: maxGustReport.beaufortScale,
-    avgWindKnots: Math.round((totalWindKnots / reports.length) * 10) / 10,
-    avgWindKmH: Math.round(((totalWindKnots / reports.length) * 1.852) * 10) / 10,
-    avgGustKnots: Math.round((totalGustKnots / reports.length) * 10) / 10,
-    avgGustKmH: Math.round(((totalGustKnots / reports.length) * 1.852) * 10) / 10,
-    minWindKnots: minWind,
-    minWindKmH: Math.round((minWind * 1.852) * 10) / 10,
-    prevailingQuadrant: maxGustReport.windDirectionCardinal,
-    maxGustFactor: maxFactor,
-    lastUpdated: now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-    source: 'Modelo Hidrometeorológico Costeiro (Simulação Harmônica 24h)',
-  };
-}
 
 /**
  * Fetches real 24-hour retrospective wind speed and registered peak gusts from Open-Meteo
@@ -649,7 +505,7 @@ function generateFallbackPast24hWind(lat: number, lng: number): Past24hWindHisto
 export async function fetch24HourPastWindHistory(
   lat: number,
   lng: number
-): Promise<Past24hWindHistory> {
+): Promise<Past24hWindHistory | null> {
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m&past_days=1&forecast_days=1&timezone=auto`;
     const res = await fetch(url);
@@ -776,6 +632,6 @@ export async function fetch24HourPastWindHistory(
     console.warn('Real past 24h wind history API error:', err);
   }
 
-  return generateFallbackPast24hWind(lat, lng);
+  return null;
 }
 

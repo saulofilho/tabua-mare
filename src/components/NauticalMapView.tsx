@@ -35,6 +35,8 @@ interface NauticalMapViewProps {
   currentTideHeight: number;
   isOfflineMode: boolean;
   onOpenDownloadModal: () => void;
+  vesselCoords?: { lat: number; lng: number };
+  onVesselPositionChange?: (pos: [number, number]) => void;
 }
 
 // Cálculo geodésico de distância em metros (Fórmula de Haversine)
@@ -75,42 +77,57 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
   currentTideHeight,
   isOfflineMode,
   onOpenDownloadModal,
+  vesselCoords,
+  onVesselPositionChange,
 }) => {
   // Posição e movimento da embarcação
-  const [vesselPosition, setVesselPosition] = useState<[number, number]>([
-    station.lat,
-    station.lng,
-  ]);
+  const [vesselPosition, setVesselPosition] = useState<[number, number]>(() => {
+    if (vesselCoords) return [vesselCoords.lat, vesselCoords.lng];
+    return [station.lat, station.lng];
+  });
+
+  useEffect(() => {
+    if (vesselCoords) {
+      setVesselPosition((prev) => {
+        if (Math.abs(prev[0] - vesselCoords.lat) > 0.00001 || Math.abs(prev[1] - vesselCoords.lng) > 0.00001) {
+          return [vesselCoords.lat, vesselCoords.lng];
+        }
+        return prev;
+      });
+    }
+  }, [vesselCoords?.lat, vesselCoords?.lng]);
+
+  useEffect(() => {
+    onVesselPositionChange?.(vesselPosition);
+  }, [vesselPosition, onVesselPositionChange]);
   const [vesselHeading, setVesselHeading] = useState<number>(45);
   const [vesselSpeed, setVesselSpeed] = useState<number>(0.2);
   const [isSimulatingCruise, setIsSimulatingCruise] = useState<boolean>(false);
   const [isLiveGPSActive, setIsLiveGPSActive] = useState<boolean>(false);
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
 
-  // Rota e Waypoints (pontos de passagem)
-  const [routeWaypoints, setRouteWaypoints] = useState<Waypoint[]>([
-    {
-      id: 'wp-1',
-      name: 'Ponto 1 - Canal de Acesso',
-      lat: station.lat - 0.015,
-      lng: station.lng - 0.012,
-      chartedDepth: 14.5,
-    },
-    {
-      id: 'wp-2',
-      name: 'Ponto 2 - Bóia de Meio Canal',
-      lat: station.lat - 0.005,
-      lng: station.lng - 0.008,
-      chartedDepth: 8.2,
-    },
-    {
-      id: 'wp-3',
-      name: 'Ponto 3 - Fondeadouro Principal',
-      lat: station.lat + 0.008,
-      lng: station.lng + 0.005,
-      chartedDepth: 4.8,
-    },
-  ]);
+  // Rota e Waypoints (pontos de passagem reais traçados pelo navegador)
+  const [routeWaypoints, setRouteWaypoints] = useState<Waypoint[]>(() => {
+    try {
+      const saved = localStorage.getItem(`maresegura_waypoints_${station.id}`);
+      if (saved) {
+        const parsed: Waypoint[] = JSON.parse(saved);
+        return parsed.filter((w) => !['wp-1', 'wp-2', 'wp-3'].includes(w.id));
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Salva waypoints traçados na estação atual
+  useEffect(() => {
+    try {
+      localStorage.setItem(`maresegura_waypoints_${station.id}`, JSON.stringify(routeWaypoints));
+    } catch (e) {
+      console.error('Erro salvando waypoints:', e);
+    }
+  }, [routeWaypoints, station.id]);
 
   // Vigia de Âncora (Anchor Watch - Alarme de Garreio)
   const [anchorWatchActive, setAnchorWatchActive] = useState<boolean>(false);

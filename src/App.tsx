@@ -7,6 +7,7 @@ import {
   VesselProfile,
   TemperatureUnit,
   NavigationLogEntry,
+  NauticalHazard,
 } from './types/tide';
 import { TIDE_STATIONS } from './data/tideStations';
 import { REAL_BRAZILIAN_BEACHES, BeachLocation } from './data/beaches';
@@ -27,6 +28,7 @@ import {
   findNearestBeach,
   RealMarineConditions,
   calculateDistanceKm,
+  calculateDistanceMeters,
   kmToNauticalMiles,
 } from './services/realMarineApi';
 import { TopBar } from './components/TopBar';
@@ -178,6 +180,18 @@ const INITIAL_RULES: TideAlertRule[] = [
     unit: 'nós',
     description: 'Monitora a velocidade do vento via condições meteomarinhas e dispara alerta visual quando exceder 25 nós.',
   },
+  {
+    id: 'rule-hazard-proximity',
+    title: 'Aproximação de Perigo (< 500m)',
+    type: 'hazard_proximity',
+    thresholdValue: 500,
+    operator: 'less_than',
+    enabled: true,
+    soundAlert: true,
+    soundType: 'danger',
+    unit: 'm',
+    description: 'Dispara alerta de geocerca náutica e sirene quando a embarcação estiver a menos de 500 metros de qualquer perigo ou ponto crítico cadastrado na estação.',
+  },
 ];
 
 export default function App() {
@@ -243,6 +257,12 @@ export default function App() {
   });
   const [hasRealGPS, setHasRealGPS] = useState<boolean>(false);
 
+  // Vessel Position coordinates (for navigation, simulation and geofence proximity alerts)
+  const [vesselCoords, setVesselCoords] = useState<{ lat: number; lng: number }>({
+    lat: -12.9667,
+    lng: -38.5133,
+  });
+
   // Real Marine conditions from Open-Meteo Marine API
   const [marineConditions, setMarineConditions] = useState<RealMarineConditions | null>(null);
 
@@ -291,7 +311,11 @@ export default function App() {
   const [logbookEntries, setLogbookEntries] = useState<NavigationLogEntry[]>(() => {
     try {
       const saved = localStorage.getItem('maresegura_logbook');
-      return saved ? JSON.parse(saved) : INITIAL_LOGBOOK_ENTRIES;
+      if (saved) {
+        const parsed: NavigationLogEntry[] = JSON.parse(saved);
+        return parsed.filter((item) => item.id !== 'log-1' && item.id !== 'log-2');
+      }
+      return INITIAL_LOGBOOK_ENTRIES;
     } catch {
       return INITIAL_LOGBOOK_ENTRIES;
     }
@@ -341,6 +365,7 @@ export default function App() {
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
           setUserCoords({ lat, lng });
+          setVesselCoords({ lat, lng });
           setHasRealGPS(true);
 
           // Find closest beach to user coordinates
@@ -358,6 +383,21 @@ export default function App() {
       );
     }
   }, []);
+
+  const handleVesselPositionChange = useCallback((pos: [number, number]) => {
+    setVesselCoords({ lat: pos[0], lng: pos[1] });
+  }, []);
+
+  const handleSimulateVesselApproach = useCallback((hazard: NauticalHazard) => {
+    // Posiciona a embarcação a ~330 metros do perigo selecionado para testar disparo de geocerca (< 500m)
+    const targetLat = hazard.lat + 0.0026;
+    const targetLng = hazard.lng + 0.0011;
+    setVesselCoords({ lat: targetLat, lng: targetLng });
+  }, []);
+
+  const handleResetVesselPosition = useCallback(() => {
+    setVesselCoords({ lat: station.lat, lng: station.lng });
+  }, [station]);
 
   useEffect(() => {
     handleRequestGPS();
@@ -494,11 +534,38 @@ export default function App() {
           timestamp: Date.now(),
           value: `${currentWindKnots} nós`,
         });
+      } else if (rule.type === 'hazard_proximity') {
+        const coords = vesselCoords || userCoords;
+        if (coords && station.hazards && station.hazards.length > 0) {
+          station.hazards.forEach((hazard) => {
+            const distM = calculateDistanceMeters(coords.lat, coords.lng, hazard.lat, hazard.lng);
+            if (distM <= rule.thresholdValue) {
+              const hazardTypeLabels: Record<string, string> = {
+                rock: 'Pedra / Laje Submersa',
+                shallow: 'Baixio Rochoso',
+                wreck: 'Naufrágio Submerso',
+                sandbank: 'Banco de Areia',
+                buoy: 'Balizamento / Bóia',
+                lighthouse: 'Farol / Costão',
+              };
+              const typeLabel = hazardTypeLabels[hazard.type] || 'Perigo Náutico';
+              alerts.push({
+                id: `alt-hazard-${hazard.id}`,
+                ruleId: rule.id,
+                title: `Aproximação de Perigo: ${hazard.name}`,
+                message: `Embarcação a apenas ${Math.round(distM)}m de ${hazard.name} (${typeLabel} · Prof. Carta: ${hazard.chartedDepth.toFixed(1)}m). Menor que a geocerca de segurança (${rule.thresholdValue}m).`,
+                severity: 'danger',
+                timestamp: Date.now(),
+                value: `${Math.round(distM)}m`,
+              });
+            }
+          });
+        }
       }
     });
 
     return alerts;
-  }, [rules, status, vessel, marineConditions]);
+  }, [rules, status, vessel, marineConditions, station, vesselCoords, userCoords]);
 
   // Disparo contínuo e inteligente de notificações de alerta no navegador (primeiro e segundo plano)
   useEffect(() => {
@@ -756,6 +823,8 @@ export default function App() {
                 currentTideHeight={status.currentHeight}
                 isOfflineMode={isOfflineMode}
                 onOpenDownloadModal={() => setIsOfflineModalOpen(true)}
+                vesselCoords={vesselCoords}
+                onVesselPositionChange={handleVesselPositionChange}
               />
             </Suspense>
           </TacticalErrorBoundary>
@@ -805,6 +874,10 @@ export default function App() {
                 activeAlerts={activeAlerts}
                 currentStatus={status}
                 vessel={vessel}
+                station={station}
+                vesselCoords={vesselCoords}
+                onSimulateVesselApproach={handleSimulateVesselApproach}
+                onResetVesselPosition={handleResetVesselPosition}
               />
             </Suspense>
           </TacticalErrorBoundary>

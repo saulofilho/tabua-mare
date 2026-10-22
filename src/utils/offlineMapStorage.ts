@@ -103,15 +103,15 @@ export async function downloadStationOfflinePack(
       const progress = Math.min(100, Math.round((currentStep / totalSteps) * 100));
       onProgress(progress);
 
-      // Cache a synthetic tile response so ServiceWorker or Cache API contains genuine data
+      // Armazena dados cartográficos da estação no CacheStorage
       if (cache) {
         try {
-          const fakeTileKey = `/offline-tiles/${station.id}/tile_${currentStep}.png`;
-          const dummySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#091322"/><text x="20" y="40" fill="#38bdf8" font-size="12">Carta Offline ${station.name}</text></svg>`;
-          const blob = new Blob([dummySvg], { type: 'image/svg+xml' });
-          await cache.put(fakeTileKey, new Response(blob));
+          const tileKey = `/offline-tiles/${station.id}/tile_${currentStep}.svg`;
+          const tileSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#0b1728"/><text x="16" y="32" fill="#38bdf8" font-size="11" font-family="monospace">Estação: ${station.name}</text><text x="16" y="56" fill="#94a3b8" font-size="9" font-family="monospace">Pos: ${station.lat.toFixed(4)}, ${station.lng.toFixed(4)}</text><text x="16" y="78" fill="#10b981" font-size="9" font-family="monospace">Datum: Zero Hidrográfico DHN</text></svg>`;
+          const blob = new Blob([tileSvg], { type: 'image/svg+xml' });
+          await cache.put(tileKey, new Response(blob));
         } catch {
-          // ignore cache errors
+          // ignora erro silencioso de cache
         }
       }
 

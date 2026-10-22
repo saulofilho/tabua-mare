@@ -237,6 +237,24 @@ export const WindHistory24hPanel: React.FC<WindHistory24hPanelProps> = ({
 
       {/* Conteúdo Principal */}
       <div className="p-4 sm:p-6 space-y-6">
+        {!data && !loading && (
+          <div className="border-2 border-dashed border-black dark:border-white p-8 text-center bg-white dark:bg-[#161b22]">
+            <AlertTriangle className="w-8 h-8 text-[#d42020] mx-auto mb-2" />
+            <h4 className="font-bold uppercase text-black dark:text-white text-sm">
+              Relatório Meteorológico 24h Indisponível
+            </h4>
+            <p className="text-xs text-[#666] dark:text-[#8b949e] mt-1 max-w-md mx-auto">
+              Não foi possível conectar aos relatórios meteorológicos da API neste momento. Conecte-se à internet para sincronizar telemetria real de ventos e rajadas.
+            </p>
+            <button
+              onClick={loadWindHistory}
+              className="mt-3 px-4 py-2 bg-black hover:bg-[#333] text-white dark:bg-white dark:text-black dark:hover:bg-[#eee] text-xs font-bold uppercase cursor-pointer"
+            >
+              Tentar Novamente
+            </button>
+          </div>
+        )}
+
         {/* CARDS TÁTICOS DE DESTAQUE: PICO MÁXIMO DE RAJADA E MÉTRICAS */}
         {data && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

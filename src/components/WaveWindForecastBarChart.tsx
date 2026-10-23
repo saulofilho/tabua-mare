@@ -20,6 +20,7 @@ import {
 import { TideStation } from '../types/tide';
 import TacticalErrorBoundary from './TacticalErrorBoundary';
 import { RechartsWaveWindGraph } from './RechartsWaveWindGraph';
+import { InteractiveWindRose } from './InteractiveWindRose';
 
 interface WaveWindForecastBarChartProps {
   station: TideStation;
@@ -285,48 +286,72 @@ export const WaveWindForecastBarChart: React.FC<WaveWindForecastBarChartProps> =
             Nenhum dado de previsão disponível para esta coordenada no momento.
           </div>
         ) : (
-          <div className="w-full">
-            <TacticalErrorBoundary fallbackTitle="Falha ao carregar gráfico Recharts">
-              <RechartsWaveWindGraph
-                forecast={forecast}
-                displayMode={displayMode}
-                selectedHour={selectedHour}
-                onSelectHour={setSelectedHour}
-              />
-            </TacticalErrorBoundary>
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+            {/* Gráfico Recharts de Previsão 24h (Ondas e Vento) */}
+            <div className="xl:col-span-7 2xl:col-span-8 flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-black/10 dark:border-white/10">
+                <span className="text-[11px] font-bold uppercase text-[#555] dark:text-[#aaa] flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-[#0284c7]" />
+                  Curva Horária Prevista // Ondas & Vento
+                </span>
+                <span className="text-[10px] font-bold text-[#888] uppercase hidden sm:inline">
+                  Passo Horário (24h)
+                </span>
+              </div>
 
-            {/* Painel de Detalhes da Hora Selecionada (ao clicar ou interagir) */}
-            {selectedHour && (
-              <div className="mt-4 p-3.5 border-2 border-black dark:border-white bg-[#f8f7f4] dark:bg-[#161b22] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 border border-black dark:border-white bg-white dark:bg-[#0d1117] font-bold text-center shrink-0">
-                    <span className="block text-[10px] text-[#888]">{selectedHour.dayLabel}</span>
-                    <span className="font-display text-lg text-black dark:text-white leading-tight">
-                      {selectedHour.fullTimeStr}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <strong className="text-black dark:text-white uppercase">
-                        {selectedHour.isCurrentHour ? 'Momento Atual (Agora)' : `Condição às ${selectedHour.fullTimeStr}`}
-                      </strong>
-                      <span className="text-[10px] px-1.5 py-0.2 bg-black text-white dark:bg-white dark:text-black font-bold">
-                        {getWaveCondition(selectedHour.waveHeightMeters).name}
+              <TacticalErrorBoundary fallbackTitle="Falha ao carregar gráfico Recharts">
+                <RechartsWaveWindGraph
+                  forecast={forecast}
+                  displayMode={displayMode}
+                  selectedHour={selectedHour}
+                  onSelectHour={setSelectedHour}
+                />
+              </TacticalErrorBoundary>
+
+              {/* Painel de Detalhes da Hora Selecionada (ao clicar ou interagir) */}
+              {selectedHour && (
+                <div className="mt-4 p-3.5 border-2 border-black dark:border-white bg-[#f8f7f4] dark:bg-[#161b22] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 border border-black dark:border-white bg-white dark:bg-[#0d1117] font-bold text-center shrink-0">
+                      <span className="block text-[10px] text-[#888]">{selectedHour.dayLabel}</span>
+                      <span className="font-display text-lg text-black dark:text-white leading-tight">
+                        {selectedHour.fullTimeStr}
                       </span>
                     </div>
-                    <p className="text-[11px] text-[#555] dark:text-[#aaa] mt-0.5">
-                      Ondas com <strong>{selectedHour.waveHeightMeters.toFixed(1)}m</strong> de altura • Vento de{' '}
-                      <strong>{selectedHour.windSpeedKmH.toFixed(0)} km/h ({selectedHour.windSpeedKnots.toFixed(1)} nós)</strong>{' '}
-                      [{getBeaufortScale(selectedHour.windSpeedKmH).name}]
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <strong className="text-black dark:text-white uppercase">
+                          {selectedHour.isCurrentHour ? 'Momento Atual (Agora)' : `Condição às ${selectedHour.fullTimeStr}`}
+                        </strong>
+                        <span className="text-[10px] px-1.5 py-0.2 bg-black text-white dark:bg-white dark:text-black font-bold">
+                          {getWaveCondition(selectedHour.waveHeightMeters).name}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#555] dark:text-[#aaa] mt-0.5">
+                        Ondas com <strong>{selectedHour.waveHeightMeters.toFixed(1)}m</strong> de altura • Vento de{' '}
+                        <strong>{selectedHour.windSpeedKmH.toFixed(0)} km/h ({selectedHour.windSpeedKnots.toFixed(1)} nós)</strong>{' '}
+                        [{getBeaufortScale(selectedHour.windSpeedKmH).name}]
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-[11px] text-right font-bold text-[#444] dark:text-[#ccc] border-t sm:border-t-0 sm:border-l border-black/10 dark:border-white/10 sm:pl-3 pt-1 sm:pt-0">
+                    <span>Toque em qualquer barra para inspecionar</span>
                   </div>
                 </div>
+              )}
+            </div>
 
-                <div className="text-[11px] text-right font-bold text-[#444] dark:text-[#ccc] border-t sm:border-t-0 sm:border-l border-black/10 dark:border-white/10 sm:pl-3 pt-1 sm:pt-0">
-                  <span>Toque em qualquer barra para inspecionar</span>
-                </div>
-              </div>
-            )}
+            {/* Rosa dos Ventos Interativa das Últimas 24h (Direção Predominante) */}
+            <div className="xl:col-span-5 2xl:col-span-4">
+              <TacticalErrorBoundary fallbackTitle="Falha ao carregar Rosa dos Ventos">
+                <InteractiveWindRose
+                  lat={targetLat}
+                  lng={targetLng}
+                  locationName={locationName || station.name}
+                />
+              </TacticalErrorBoundary>
+            </div>
           </div>
         )}
       </div>

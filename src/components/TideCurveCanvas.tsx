@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { TidePoint, TideStation, VesselProfile } from '../types/tide';
 import { generateTideCurve, findTideExtremes, calculateUKC } from '../utils/tideHarmonics';
+import { Box, Layers } from 'lucide-react';
+import TideCurve3D from './TideCurve3D';
 
 interface TideCurveCanvasProps {
   station: TideStation;
@@ -17,6 +19,7 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
   lowTideAlertThreshold = 0.55,
   timeRange = 24,
 }) => {
+  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
   const [hoveredPoint, setHoveredPoint] = useState<TidePoint | null>(null);
 
   const startTime = useMemo(() => {
@@ -118,32 +121,75 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
           </h4>
         </div>
 
-        {inspectedPoint && (
-          <div className="text-xs font-bold text-[#111111] flex flex-wrap items-center gap-3 bg-[#f8f7f4] border border-black p-1.5 px-3">
-            <span>
-              HORÁRIO: <strong className="text-black">{new Date(inspectedPoint.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</strong>
-            </span>
-            <span>·</span>
-            <span>
-              ALTURA: <strong className="text-[#3b82f6]">{inspectedPoint.height.toFixed(2)}m</strong>
-            </span>
-            {inspectedUKC && (
-              <>
-                <span>·</span>
-                <span>
-                  FOLGA DO BARCO: <strong className={inspectedUKC.safetyStatus === 'safe' ? 'text-[#008800]' : 'text-[#d42020]'}>+{inspectedUKC.ukc.toFixed(2)}m livre</strong>
-                </span>
-              </>
-            )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Alternador 3D / 2D */}
+          <div className="flex items-center border border-black p-0.5 bg-[#f8f7f4]">
+            <button
+              onClick={() => setViewMode('3d')}
+              className={`px-2 py-1 text-xs font-bold uppercase cursor-pointer flex items-center gap-1.5 transition-colors ${
+                viewMode === '3d'
+                  ? 'bg-black text-white shadow-xs'
+                  : 'text-[#555] hover:text-black'
+              }`}
+              title="Superfície 3D da Onda de Maré com Relevo e Câmera Orbital"
+            >
+              <Box className="w-3.5 h-3.5 text-[#0284c7]" />
+              <span>3D ONDA</span>
+            </button>
+            <button
+              onClick={() => setViewMode('2d')}
+              className={`px-2 py-1 text-xs font-bold uppercase cursor-pointer flex items-center gap-1.5 transition-colors ${
+                viewMode === '2d'
+                  ? 'bg-black text-white shadow-xs'
+                  : 'text-[#555] hover:text-black'
+              }`}
+              title="Gráfico Cartesiano 2D Clássico"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>2D GRÁFICO</span>
+            </button>
           </div>
-        )}
+
+          {inspectedPoint && (
+            <div className="text-xs font-bold text-[#111111] flex flex-wrap items-center gap-3 bg-[#f8f7f4] border border-black p-1.5 px-3">
+              <span>
+                HORÁRIO: <strong className="text-black">{new Date(inspectedPoint.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</strong>
+              </span>
+              <span>·</span>
+              <span>
+                ALTURA: <strong className="text-[#3b82f6]">{inspectedPoint.height.toFixed(2)}m</strong>
+              </span>
+              {inspectedUKC && (
+                <>
+                  <span>·</span>
+                  <span>
+                    FOLGA DO BARCO: <strong className={inspectedUKC.safetyStatus === 'safe' ? 'text-[#008800]' : 'text-[#d42020]'}>+{inspectedUKC.ukc.toFixed(2)}m livre</strong>
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="relative w-full overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-          className="w-full min-w-[700px] h-auto select-none overflow-visible cursor-crosshair"
-          onMouseLeave={() => setHoveredPoint(null)}
+      {/* 3D vs 2D Diagram Stage */}
+      {viewMode === '3d' ? (
+        <TideCurve3D
+          points={points}
+          extremes={extremes}
+          currentTime={currentTime}
+          lowTideAlertThreshold={lowTideAlertThreshold}
+          timeRange={timeRange}
+          vessel={vessel}
+          onHoverPoint={setHoveredPoint}
+          hoveredPoint={hoveredPoint}
+        />
+      ) : (
+        <div className="relative w-full overflow-x-auto">
+          <svg
+            viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+            className="w-full min-w-[700px] h-auto select-none overflow-visible cursor-crosshair"
+            onMouseLeave={() => setHoveredPoint(null)}
           onMouseMove={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
@@ -332,6 +378,7 @@ export const TideCurveCanvas: React.FC<TideCurveCanvasProps> = ({
           )}
         </svg>
       </div>
+      )}
 
       {/* Faixa explicativa em Português simples */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 text-xs">

@@ -26,9 +26,11 @@ import {
   History,
   Sparkles,
   ChevronRight,
+  Activity,
 } from 'lucide-react';
 import { WeeklyTideStatsChart } from './WeeklyTideStatsChart';
 import { TideHistoryPast7Days } from './TideHistoryPast7Days';
+import { TideHistory24hRealVsAstroChart } from './TideHistory24hRealVsAstroChart';
 
 interface TideDashboardProps {
   station: TideStation;
@@ -64,7 +66,7 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
   currentTime,
 }) => {
   const [viewMode, setViewMode] = useState<'timeline' | 'cards' | 'table'>('timeline');
-  const [tideAnalysisView, setTideAnalysisView] = useState<'both' | 'history' | 'forecast'>('both');
+  const [tideAnalysisView, setTideAnalysisView] = useState<'24h' | 'history' | 'forecast' | 'all'>('24h');
 
   // Profundidade de referência para canais costeiros (2.5m de profundidade na carta náutica)
   const refChartedDepth = 2.5;
@@ -790,16 +792,29 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
         </div>
       </div>
 
-      {/* 4. SELETOR DE ANÁLISE TEMPORAL (HISTÓRICO 7 DIAS VS PREVISÃO FUTURA) */}
+      {/* 4. SELETOR DE ANÁLISE TEMPORAL (HISTÓRICO 24H REAL VS ASTRO, 7 DIAS PASSADOS & PREVISÃO) */}
       <div className="border-b-2 border-black dark:border-[#30363d] bg-[#f8f7f4] dark:bg-[#161b22] px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <History className="w-4 h-4 text-[#d42020]" />
+          <Activity className="w-4 h-4 text-[#0284c7]" />
           <span className="font-display font-bold text-xs uppercase tracking-tight text-black dark:text-white">
-            Análise Astronômica Semanal da Maré (Passado & Futuro)
+            Análise Histórica & Astronômica das Marés
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Visualização de análise astronômica">
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Visualização de análise de maré">
+          <button
+            onClick={() => setTideAnalysisView('24h')}
+            aria-pressed={tideAnalysisView === '24h'}
+            className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer transition-colors flex items-center gap-1.5 ${
+              tideAnalysisView === '24h'
+                ? 'bg-[#0284c7] text-white border-[#0284c7]'
+                : 'bg-white text-black dark:bg-[#0d1117] dark:text-white hover:bg-[#eee] dark:hover:bg-[#21262d]'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5" />
+            <span>Últimas 24h: Real vs. Astronômica</span>
+          </button>
+
           <button
             onClick={() => setTideAnalysisView('history')}
             aria-pressed={tideAnalysisView === 'history'}
@@ -810,7 +825,7 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
             }`}
           >
             <History className="w-3.5 h-3.5 text-[#d42020]" />
-            <span>Últimos 7 Dias (Histórico)</span>
+            <span>Últimos 7 Dias</span>
           </button>
 
           <button
@@ -823,32 +838,39 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>Próximos 7 Dias (Previsão)</span>
+            <span>Próximos 7 Dias</span>
           </button>
 
           <button
-            onClick={() => setTideAnalysisView('both')}
-            aria-pressed={tideAnalysisView === 'both'}
+            onClick={() => setTideAnalysisView('all')}
+            aria-pressed={tideAnalysisView === 'all'}
             className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer transition-colors ${
-              tideAnalysisView === 'both'
+              tideAnalysisView === 'all'
                 ? 'bg-black text-white dark:bg-white dark:text-black'
                 : 'bg-white text-black dark:bg-[#0d1117] dark:text-white hover:bg-[#eee] dark:hover:bg-[#21262d]'
             }`}
           >
-            Ver Ambos
+            Ver Todos
           </button>
         </div>
       </div>
 
-      {/* SEÇÃO DE HISTÓRICO DE MARÉS DOS ÚLTIMOS 7 DIAS COM RECHARTS */}
-      {(tideAnalysisView === 'both' || tideAnalysisView === 'history') && (
+      {/* SEÇÃO 1: GRÁFICO RECHARTS DE LINHA DAS ÚLTIMAS 24H: REAL VS. ASTRONÔMICA */}
+      {(tideAnalysisView === '24h' || tideAnalysisView === 'all') && (
+        <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#0d1117] p-4 sm:p-6" id="tide-24h-real-vs-astro-section">
+          <TideHistory24hRealVsAstroChart station={station} currentTime={currentTime} />
+        </div>
+      )}
+
+      {/* SEÇÃO 2: HISTÓRICO DE MARÉS DOS ÚLTIMOS 7 DIAS COM RECHARTS */}
+      {(tideAnalysisView === 'history' || tideAnalysisView === 'all') && (
         <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#0d1117] p-4 sm:p-6" id="past-tide-history-section">
           <TideHistoryPast7Days station={station} currentTime={currentTime} />
         </div>
       )}
 
-      {/* SEÇÃO DE ESTATÍSTICAS SEMANAIS DA MARÉ COM RECHARTS */}
-      {(tideAnalysisView === 'both' || tideAnalysisView === 'forecast') && (
+      {/* SEÇÃO 3: ESTATÍSTICAS SEMANAIS DA MARÉ COM RECHARTS */}
+      {(tideAnalysisView === 'forecast' || tideAnalysisView === 'all') && (
         <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#0d1117] p-4 sm:p-6" id="weekly-tide-stats-section">
           <WeeklyTideStatsChart station={station} currentTime={currentTime} />
         </div>

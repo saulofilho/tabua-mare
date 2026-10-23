@@ -83,9 +83,13 @@ export default defineConfig(() => {
     base: './',
     plugins: [react(), tailwindcss(), openGraphDynamicOriginPlugin()],
     resolve: {
+      dedupe: ['react', 'react-dom'],
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+    },
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'react/jsx-runtime'],
     },
     build: {
       chunkSizeWarningLimit: 600,

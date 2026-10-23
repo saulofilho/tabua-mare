@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   ActiveAlertNotification,
   OfflineRegionStatus,
@@ -36,26 +36,21 @@ import { NearestBeachBanner } from './components/NearestBeachBanner';
 import { TideDashboard } from './components/TideDashboard';
 import { VisualTideGauge } from './components/VisualTideGauge';
 import { TideCurveCanvas } from './components/TideCurveCanvas';
-import {
-  RadarMapSkeleton,
-  WaveWindChartSkeleton,
-  TabModuleSkeleton,
-} from './components/TacticalSkeletons';
+import { WaveWindChartSkeleton } from './components/TacticalSkeletons';
 import { analytics } from './services/analytics';
 import { alertNotificationService } from './services/alertNotificationService';
 import { Download } from 'lucide-react';
 import WaveWindForecastBarChart from './components/WaveWindForecastBarChart';
 import TacticalErrorBoundary from './components/TacticalErrorBoundary';
 
-// Code-splitting via React.lazy() para abas secundárias sob demanda e performance WebAudit
-const NauticalMapView = lazy(() => import('./components/NauticalMapView'));
-const NavigationLogbook = lazy(() => import('./components/NavigationLogbook'));
-const AlertsManager = lazy(() => import('./components/AlertsManager'));
-const NauticalUnitConverter = lazy(() => import('./components/NauticalUnitConverter'));
-const OfflineManagerModal = lazy(() => import('./components/OfflineManagerModal'));
-const VesselConfigModal = lazy(() => import('./components/VesselConfigModal'));
-const LocationSearchModal = lazy(() => import('./components/LocationSearchModal'));
-const EmergencySOSModal = lazy(() => import('./components/EmergencySOSModal'));
+import { NauticalMapView } from './components/NauticalMapView';
+import { NavigationLogbook } from './components/NavigationLogbook';
+import { AlertsManager } from './components/AlertsManager';
+import { NauticalUnitConverter } from './components/NauticalUnitConverter';
+import { OfflineManagerModal } from './components/OfflineManagerModal';
+import { VesselConfigModal } from './components/VesselConfigModal';
+import { LocationSearchModal } from './components/LocationSearchModal';
+import { EmergencySOSModal } from './components/EmergencySOSModal';
 
 const DEFAULT_VESSEL: VesselProfile = {
   name: 'Albatroz',
@@ -813,73 +808,53 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 2: Carta Náutica & GPS (Leaflet code-split) */}
+        {/* Tab 2: Carta Náutica & GPS */}
         {activeTab === 'map' && (
           <TacticalErrorBoundary fallbackTitle="Falha ao carregar Carta Náutica">
-            <Suspense fallback={<RadarMapSkeleton />}>
-              <NauticalMapView
-                station={station}
-                vessel={vessel}
-                currentTideHeight={status.currentHeight}
-                isOfflineMode={isOfflineMode}
-                onOpenDownloadModal={() => setIsOfflineModalOpen(true)}
-                vesselCoords={vesselCoords}
-                onVesselPositionChange={handleVesselPositionChange}
-              />
-            </Suspense>
+            <NauticalMapView
+              station={station}
+              vessel={vessel}
+              currentTideHeight={status.currentHeight}
+              isOfflineMode={isOfflineMode}
+              onOpenDownloadModal={() => setIsOfflineModalOpen(true)}
+              vesselCoords={vesselCoords}
+              onVesselPositionChange={handleVesselPositionChange}
+            />
           </TacticalErrorBoundary>
         )}
 
         {/* Tab 3: Diário de Navegação */}
         {activeTab === 'logbook' && (
           <TacticalErrorBoundary fallbackTitle="Falha ao carregar Diário de Bordo">
-            <Suspense
-              fallback={
-                <TabModuleSkeleton
-                  title="Diário de Bordo Náutico"
-                  subtitle="Carregando livro de registro e travessias..."
-                />
-              }
-            >
-              <NavigationLogbook
-                entries={logbookEntries}
-                onAddEntry={handleAddLogEntry}
-                onUpdateEntry={handleUpdateLogEntry}
-                onDeleteEntry={handleDeleteLogEntry}
-                currentStation={station}
-                currentStatus={status}
-                currentVessel={vessel}
-                realMarineConditions={marineConditions}
-                tempUnit={tempUnit}
-                activeBeachName={selectedBeach.name}
-              />
-            </Suspense>
+            <NavigationLogbook
+              entries={logbookEntries}
+              onAddEntry={handleAddLogEntry}
+              onUpdateEntry={handleUpdateLogEntry}
+              onDeleteEntry={handleDeleteLogEntry}
+              currentStation={station}
+              currentStatus={status}
+              currentVessel={vessel}
+              realMarineConditions={marineConditions}
+              tempUnit={tempUnit}
+              activeBeachName={selectedBeach.name}
+            />
           </TacticalErrorBoundary>
         )}
 
         {/* Tab 4: Alertas */}
         {activeTab === 'alerts' && (
           <TacticalErrorBoundary fallbackTitle="Falha ao carregar Central de Alertas">
-            <Suspense
-              fallback={
-                <TabModuleSkeleton
-                  title="Central de Alertas & Notificações"
-                  subtitle="Sincronizando regras de segurança e sensores de folga sob a quilha..."
-                />
-              }
-            >
-              <AlertsManager
-                rules={rules}
-                onUpdateRules={handleUpdateRules}
-                activeAlerts={activeAlerts}
-                currentStatus={status}
-                vessel={vessel}
-                station={station}
-                vesselCoords={vesselCoords}
-                onSimulateVesselApproach={handleSimulateVesselApproach}
-                onResetVesselPosition={handleResetVesselPosition}
-              />
-            </Suspense>
+            <AlertsManager
+              rules={rules}
+              onUpdateRules={handleUpdateRules}
+              activeAlerts={activeAlerts}
+              currentStatus={status}
+              vessel={vessel}
+              station={station}
+              vesselCoords={vesselCoords}
+              onSimulateVesselApproach={handleSimulateVesselApproach}
+              onResetVesselPosition={handleResetVesselPosition}
+            />
           </TacticalErrorBoundary>
         )}
 
@@ -952,26 +927,17 @@ export default function App() {
         {/* Tab 5: Conversor de Unidades Náuticas */}
         {activeTab === 'converter' && (
           <TacticalErrorBoundary fallbackTitle="Falha ao carregar Conversor de Unidades">
-            <Suspense
-              fallback={
-                <TabModuleSkeleton
-                  title="Conversor de Unidades Náuticas"
-                  subtitle="Calculando conversões de velocidade, distância, pressão barométrica e profundidade..."
-                />
+            <NauticalUnitConverter
+              currentWindSpeedKnots={
+                marineConditions?.windSpeedKmH
+                  ? Math.round((marineConditions.windSpeedKmH / 1.852) * 10) / 10
+                  : undefined
               }
-            >
-              <NauticalUnitConverter
-                currentWindSpeedKnots={
-                  marineConditions?.windSpeedKmH
-                    ? Math.round((marineConditions.windSpeedKmH / 1.852) * 10) / 10
-                    : undefined
-                }
-                currentPressureHpa={1013.25}
-                station={station}
-                userCoords={userCoords}
-                onNavigateToTides={() => setActiveTab('tides')}
-              />
-            </Suspense>
+              currentPressureHpa={1013.25}
+              station={station}
+              userCoords={userCoords}
+              onNavigateToTides={() => setActiveTab('tides')}
+            />
           </TacticalErrorBoundary>
         )}
       </div>
@@ -1056,54 +1022,47 @@ export default function App() {
         <div>ONDAS AO VIVO: OPEN-METEO MARINE // VERSÃO 2.5</div>
       </footer>
 
-      {/* Modais carregados sob demanda via React.lazy */}
+      {/* Modais da Aplicação */}
       {isVesselModalOpen && (
-        <Suspense fallback={null}>
-          <VesselConfigModal
-            isOpen={isVesselModalOpen}
-            onClose={() => setIsVesselModalOpen(false)}
-            vessel={vessel}
-            onSave={handleSaveVessel}
-          />
-        </Suspense>
+        <VesselConfigModal
+          isOpen={isVesselModalOpen}
+          onClose={() => setIsVesselModalOpen(false)}
+          vessel={vessel}
+          onSave={handleSaveVessel}
+        />
       )}
 
       {isOfflineModalOpen && (
-        <Suspense fallback={null}>
-          <OfflineManagerModal
-            isOpen={isOfflineModalOpen}
-            onClose={() => setIsOfflineModalOpen(false)}
-            stations={TIDE_STATIONS}
-            offlineStatuses={offlineStatuses}
-            onRefreshStatuses={refreshOfflineStatuses}
-            isOfflineMode={isOfflineMode}
-            onToggleOfflineMode={handleToggleOfflineMode}
-          />
-        </Suspense>
+        <OfflineManagerModal
+          isOpen={isOfflineModalOpen}
+          onClose={() => setIsOfflineModalOpen(false)}
+          stations={TIDE_STATIONS}
+          offlineStatuses={offlineStatuses}
+          onRefreshStatuses={refreshOfflineStatuses}
+          isOfflineMode={isOfflineMode}
+          onToggleOfflineMode={handleToggleOfflineMode}
+        />
       )}
 
       {isSearchModalOpen && (
-        <Suspense fallback={null}>
-          <LocationSearchModal
-            isOpen={isSearchModalOpen}
-            onClose={() => setIsSearchModalOpen(false)}
-            userCoords={userCoords}
-            onSelectBeach={handleSelectBeach}
-            onSelectCustomLocation={handleSelectCustomLocation}
-            onSelectLocation={(beach, st) => {
-              setSelectedBeach(beach);
-              setStation(st);
-            }}
-          />
-        </Suspense>
+        <LocationSearchModal
+          isOpen={isSearchModalOpen}
+          onClose={() => setIsSearchModalOpen(false)}
+          userCoords={userCoords}
+          onSelectBeach={handleSelectBeach}
+          onSelectCustomLocation={handleSelectCustomLocation}
+          onSelectLocation={(beach, st) => {
+            setSelectedBeach(beach);
+            setStation(st);
+          }}
+        />
       )}
 
       {/* Modal Tático de Sinalização de Socorro SOS (MAYDAY) */}
       {isSOSModalOpen && (
-        <Suspense fallback={null}>
-          <EmergencySOSModal
-            isOpen={isSOSModalOpen}
-            onClose={() => setIsSOSModalOpen(false)}
+        <EmergencySOSModal
+          isOpen={isSOSModalOpen}
+          onClose={() => setIsSOSModalOpen(false)}
             vessel={vessel}
             userCoords={userCoords}
             hasRealGPS={hasRealGPS}
@@ -1111,8 +1070,7 @@ export default function App() {
             selectedBeachName={selectedBeach?.name}
             onRequestGPS={handleRequestGPS}
           />
-        </Suspense>
-      )}
-    </div>
+        )}
+      </div>
   );
 }

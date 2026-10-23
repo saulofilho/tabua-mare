@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { CurrentTideStatus, TideExtreme, VesselProfile } from '../types/tide';
-import { ArrowUpRight, ArrowDownRight, Anchor, Ship, Waves, Info, ShieldCheck, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Anchor, Ship, Waves, Info, ShieldCheck, ShieldAlert, AlertTriangle, Box, Layers } from 'lucide-react';
+import VisualTideGauge3D from './VisualTideGauge3D';
 
 interface VisualTideGaugeProps {
   currentHeight: number;
@@ -19,6 +20,7 @@ export const VisualTideGauge: React.FC<VisualTideGaugeProps> = ({
   vessel,
   stationName,
 }) => {
+  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
   const [simulationHeight, setSimulationHeight] = useState<number | null>(null);
 
   // Active height to display (actual current or simulated scrubber)
@@ -132,8 +134,36 @@ export const VisualTideGauge: React.FC<VisualTideGaugeProps> = ({
           </p>
         </div>
 
-        {/* Status Pills */}
+        {/* Status Pills & 3D Toggle */}
         <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+          {/* Alternador 3D / 2D */}
+          <div className="flex items-center border-2 border-black dark:border-white p-0.5 bg-[#f8f7f4] dark:bg-[#161b22]">
+            <button
+              onClick={() => setViewMode('3d')}
+              className={`px-2.5 py-1 text-xs font-bold uppercase cursor-pointer flex items-center gap-1.5 transition-colors ${
+                viewMode === '3d'
+                  ? 'bg-black text-white dark:bg-white dark:text-black shadow-xs'
+                  : 'text-[#555] dark:text-[#8b949e] hover:text-black dark:hover:text-white'
+              }`}
+              title="Visualização 3D Realista com Física de Flutuação e Câmera Interativa"
+            >
+              <Box className="w-3.5 h-3.5 text-[#0284c7]" />
+              <span>3D REALISTA</span>
+            </button>
+            <button
+              onClick={() => setViewMode('2d')}
+              className={`px-2.5 py-1 text-xs font-bold uppercase cursor-pointer flex items-center gap-1.5 transition-colors ${
+                viewMode === '2d'
+                  ? 'bg-black text-white dark:bg-white dark:text-black shadow-xs'
+                  : 'text-[#555] dark:text-[#8b949e] hover:text-black dark:hover:text-white'
+              }`}
+              title="Corte Transversal Técnico 2D em SVG"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>2D TÉCNICO</span>
+            </button>
+          </div>
+
           {simulationHeight !== null ? (
             <button
               onClick={() => setSimulationHeight(null)}
@@ -153,13 +183,23 @@ export const VisualTideGauge: React.FC<VisualTideGaugeProps> = ({
         </div>
       </div>
 
-      {/* SVG Diagram Stage */}
-      <div className="relative w-full overflow-x-auto border-2 border-black dark:border-[#30363d] bg-[#f8f7f4] dark:bg-[#161b22] p-1 sm:p-2">
-        <svg
-          viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-          className="w-full min-w-[700px] h-auto select-none block"
-          style={{ maxHeight: '420px' }}
-        >
+      {/* 3D vs 2D Diagram Stage */}
+      {viewMode === '3d' ? (
+        <VisualTideGauge3D
+          currentHeight={displayHeight}
+          maxTideRange={maxTideRange}
+          status={status}
+          todayExtremes={todayExtremes}
+          vessel={vessel}
+          stationName={stationName}
+        />
+      ) : (
+        <div className="relative w-full overflow-x-auto border-2 border-black dark:border-[#30363d] bg-[#f8f7f4] dark:bg-[#161b22] p-1 sm:p-2">
+          <svg
+            viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+            className="w-full min-w-[700px] h-auto select-none block"
+            style={{ maxHeight: '420px' }}
+          >
           <defs>
             {/* Water gradient */}
             <linearGradient id="tacticalWaterGrad" x1="0" y1="0" x2="0" y2="1">
@@ -525,6 +565,7 @@ export const VisualTideGauge: React.FC<VisualTideGaugeProps> = ({
           </g>
         </svg>
       </div>
+      )}
 
       {/* Grid de Métricas Táticas Imediatas */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mt-3 pt-3 border-t-2 border-black dark:border-[#30363d]">

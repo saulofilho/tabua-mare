@@ -1,0 +1,78 @@
+{
+  "id": "/",
+  "name": "MaréSegura - Tábua de Marés e Navegação Offline",
+  "short_name": "MaréSegura",
+  "description": "Tábua de marés em tempo real, curva astronômica, alertas personalizados de segurança e cartas náuticas offline com cálculo de folga de quilha.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8f7f4",
+  "theme_color": "#111111",
+  "lang": "pt-BR",
+  "categories": ["navigation", "weather", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Tábua de Marés",
+      "short_name": "Marés",
+      "description": "Consultar tábuas de marés astronômicas do Brasil",
+      "url": "/?tab=tides",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mapa Náutico & GPS",
+      "short_name": "Mapa",
+      "description": "Cartas náuticas eletrônicas com sinalização marítima",
+      "url": "/?tab=map",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Conversor Náutico",
+      "short_name": "Conversor",
+      "description": "Conversão de nós para km/h, milhas e pressão",
+      "url": "/?tab=converter",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.jpg",
+      "sizes": "1200x630",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Painel de Marés e Condições Marítimas em Tempo Real"
+    }
+  ]
+}

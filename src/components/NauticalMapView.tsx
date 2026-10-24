@@ -37,6 +37,7 @@ interface NauticalMapViewProps {
   onOpenDownloadModal: () => void;
   vesselCoords?: { lat: number; lng: number };
   onVesselPositionChange?: (pos: [number, number]) => void;
+  gpsInterval?: number;
 }
 
 // Cálculo geodésico de distância em metros (Fórmula de Haversine)
@@ -79,6 +80,7 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
   onOpenDownloadModal,
   vesselCoords,
   onVesselPositionChange,
+  gpsInterval = 10,
 }) => {
   // Posição e movimento da embarcação
   const [vesselPosition, setVesselPosition] = useState<[number, number]>(() => {
@@ -318,7 +320,11 @@ export const NauticalMapView: React.FC<NauticalMapViewProps> = ({
       (err) => {
         console.warn('Erro ao obter posição GPS:', err);
       },
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 8000 }
+      {
+        enableHighAccuracy: true,
+        maximumAge: Math.max(1000, (gpsInterval - 1) * 1000),
+        timeout: Math.max(8000, gpsInterval * 1000),
+      }
     );
   };
 

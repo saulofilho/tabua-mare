@@ -34,7 +34,107 @@ import {
   Compass,
   Navigation,
   RotateCcw,
+  BatteryCharging,
+  BatteryMedium,
+  Gauge,
+  Music,
+  Check,
+  Play,
+  Sliders,
 } from 'lucide-react';
+
+export interface MaritimeRingtoneOption {
+  id: 'danger' | 'shipbell' | 'foghorn' | 'sonar';
+  name: string;
+  shortName: string;
+  icon: string;
+  badge: string;
+  description: string;
+  recommendedFor: string;
+  frequency: string;
+}
+
+export const NAUTICAL_RINGTONES: MaritimeRingtoneOption[] = [
+  {
+    id: 'danger',
+    name: 'Sirene de Emergência',
+    shortName: 'Sirene',
+    icon: '🚨',
+    badge: 'Urgência Crítica',
+    description: 'Pulsos rápidos de 880Hz em onda quadrada de alta intensidade para emergência de encalhe',
+    recommendedFor: 'Baixa-mar crítica, folga nula de quilha e perigos imediatos',
+    frequency: '880 Hz (A5)',
+  },
+  {
+    id: 'shipbell',
+    name: 'Sino de Navio',
+    shortName: 'Sino de Navio',
+    icon: '🔔',
+    badge: 'Tradição Náutica',
+    description: 'Dupla badalada de sino de bronze naval com rica ressonância harmônica',
+    recommendedFor: 'Marés de sizígia, mudança de quarto de vigia e avisos operacionais',
+    frequency: '840 - 3150 Hz',
+  },
+  {
+    id: 'foghorn',
+    name: 'Buzina de Neblina',
+    shortName: 'Buzina de Neblina',
+    icon: '📯',
+    badge: 'Baixa Visibilidade',
+    description: 'Tom grave de 120Hz em dente-de-serra simulando buzina de navio em nevoeiro costeiro',
+    recommendedFor: 'Ventos fortes, cerração marítima e correntezas violentas',
+    frequency: '120 Hz (Grave)',
+  },
+  {
+    id: 'sonar',
+    name: 'Sonar Náutico',
+    shortName: 'Sonar',
+    icon: '📡',
+    badge: 'Sonda Acústica',
+    description: 'Ping acústico senoidal com reverberação exponencial de ecobatímetro naval',
+    recommendedFor: 'Folga sob a quilha (UKC) e aproximação de perigos submersos',
+    frequency: '1400 → 1100 Hz',
+  },
+];
+
+export const GPS_INTERVAL_OPTIONS = [
+  {
+    value: 5,
+    icon: '⚡',
+    label: '5s',
+    title: 'Alta Precisão',
+    desc: 'Entrada de barra, canais estreitos & aproximação de perigos',
+    batteryTag: 'Alto consumo GNSS',
+    savingsTag: 'Precisão máxima',
+  },
+  {
+    value: 10,
+    icon: '🧭',
+    label: '10s',
+    title: 'Padrão Náutico',
+    desc: 'Cruzeiro costeiro balanceado & vigia preventiva',
+    batteryTag: 'Consumo moderado',
+    savingsTag: 'Recomendado',
+  },
+  {
+    value: 30,
+    icon: '🔋',
+    label: '30s',
+    title: 'Modo Econômico',
+    desc: 'Navegação aberta & pernas prolongadas de viagem',
+    batteryTag: 'Baixo consumo',
+    savingsTag: 'Economiza ~45% de bateria',
+  },
+  {
+    value: 60,
+    icon: '⚓',
+    label: '60s',
+    title: 'Longa Travessia',
+    desc: 'Alto-mar, fundeios noturnos & máxima autonomia',
+    batteryTag: 'Consumo mínimo',
+    savingsTag: 'Economiza até 70% de bateria',
+  },
+];
 
 interface AlertsManagerProps {
   rules: TideAlertRule[];
@@ -46,6 +146,8 @@ interface AlertsManagerProps {
   vesselCoords?: { lat: number; lng: number };
   onSimulateVesselApproach?: (hazard: NauticalHazard) => void;
   onResetVesselPosition?: () => void;
+  gpsInterval?: number;
+  onUpdateGpsInterval?: (intervalSeconds: number) => void;
 }
 
 export const AlertsManager: React.FC<AlertsManagerProps> = ({
@@ -58,7 +160,30 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
   vesselCoords,
   onSimulateVesselApproach,
   onResetVesselPosition,
+  gpsInterval,
+  onUpdateGpsInterval,
 }) => {
+  const [internalGpsInterval, setInternalGpsInterval] = useState<number>(() => {
+    if (gpsInterval !== undefined) return gpsInterval;
+    try {
+      const saved = localStorage.getItem('maresegura_gps_interval');
+      return saved ? parseInt(saved, 10) : 10;
+    } catch {
+      return 10;
+    }
+  });
+
+  const currentGpsRate = gpsInterval ?? internalGpsInterval;
+
+  const handleChangeGpsInterval = (newSec: number) => {
+    setInternalGpsInterval(newSec);
+    try {
+      localStorage.setItem('maresegura_gps_interval', String(newSec));
+    } catch {
+      // ignore
+    }
+    onUpdateGpsInterval?.(newSec);
+  };
   const [notificationPermission, setNotificationPermission] = useState<
     NotificationPermission | 'unsupported'
   >(alertNotificationService.getPermission());
@@ -233,16 +358,27 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
     setIsCreatingRule(false);
   };
 
+  const handleUpdateRuleSound = (
+    ruleId: string,
+    soundType: 'sonar' | 'foghorn' | 'shipbell' | 'danger'
+  ) => {
+    const updated = rules.map((r) =>
+      r.id === ruleId ? { ...r, soundType } : r
+    );
+    onUpdateRules(updated);
+    maritimeAudio.playSound(soundType);
+  };
+
   const getSoundLabel = (type: string) => {
     switch (type) {
       case 'danger':
-        return 'Alarme de Perigo';
+        return 'Sirene de Emergência';
       case 'sonar':
         return 'Sonar Náutico';
       case 'foghorn':
-        return 'Buzina de Nevoeiro';
+        return 'Buzina de Neblina';
       case 'shipbell':
-        return 'Sino de Bordo';
+        return 'Sino de Navio';
       default:
         return type;
     }
@@ -528,6 +664,95 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
             />
           </label>
         </div>
+
+        {/* SELETOR DE TAXA DE ATUALIZAÇÃO DO GPS (ECONOMIA DE BATERIA EM NAVEGAÇÕES LONGAS) */}
+        <div className="bg-white border-2 border-black p-3.5 sm:p-4 shadow-[2px_2px_0px_#000] space-y-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2.5 border-b-2 border-black">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <BatteryCharging className="w-4 h-4 text-[#16a34a]" />
+                <span className="font-bold uppercase text-xs tracking-wide text-black">
+                  TAXA DE ATUALIZAÇÃO DO GPS (ECONOMIA DE BATERIA)
+                </span>
+                <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-[#dcfce7] text-[#15803d] border border-[#16a34a]">
+                  Navegações Longas
+                </span>
+              </div>
+              <p className="text-[11px] text-[#555] mt-1 leading-relaxed">
+                Define a frequência com que o sensor GNSS do aparelho calcula a posição da embarcação. Taxas maiores (30s e 60s) reduzem o uso contínuo de hardware, evitando aquecimento e estendendo a autonomia da bateria durante travessias prolongadas.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 self-start md:self-center">
+              <span className="text-[10px] text-[#777] uppercase font-bold hidden sm:inline">Intervalo Ativo:</span>
+              <div className="px-3 py-1 bg-black text-white text-xs font-mono font-black uppercase shadow-xs flex items-center gap-1.5">
+                <Gauge className="w-3.5 h-3.5 text-[#fbbf24]" />
+                <span>{currentGpsRate} SEGUNDOS</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Opções de Seleção Rápida */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
+            {GPS_INTERVAL_OPTIONS.map((opt) => {
+              const isSelected = currentGpsRate === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => handleChangeGpsInterval(opt.value)}
+                  className={`p-3 border-2 border-black text-left cursor-pointer transition-all flex flex-col justify-between ${
+                    isSelected
+                      ? 'bg-black text-white shadow-[2px_2px_0px_#d42020]'
+                      : 'bg-[#f8f7f4] hover:bg-white text-black'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between pb-1.5 border-b border-black/15">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-base">{opt.icon}</span>
+                        <strong className="font-display text-lg font-bold tabular-nums">
+                          {opt.label}
+                        </strong>
+                      </div>
+                      {isSelected ? (
+                        <span className="text-[9px] font-black uppercase px-1.5 py-0.2 bg-[#d42020] text-white">
+                          SELECIONADO
+                        </span>
+                      ) : (
+                        <span className="text-[9px] text-[#777] uppercase font-bold">
+                          {opt.batteryTag}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className={`text-[11px] font-bold uppercase mt-2 ${isSelected ? 'text-[#facc15]' : 'text-black'}`}>
+                      {opt.title}
+                    </div>
+                    <p className={`text-[10px] mt-0.5 leading-snug ${isSelected ? 'text-[#ddd]' : 'text-[#666]'}`}>
+                      {opt.desc}
+                    </p>
+                  </div>
+
+                  <div className={`mt-2.5 pt-1.5 border-t text-[10px] font-bold uppercase flex items-center justify-between ${
+                    isSelected ? 'border-white/20 text-[#4ade80]' : 'border-black/10 text-[#16a34a]'
+                  }`}>
+                    <span>{opt.savingsTag}</span>
+                    <span>{isSelected ? '✓ ATIVO' : 'ESCOLHER'}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Dica Náutica e Diretriz da Marinha */}
+          <div className="flex items-start gap-2 bg-[#f8f7f4] p-2.5 border border-black/20 text-[11px] text-[#444] mt-1">
+            <Compass className="w-3.5 h-3.5 text-black shrink-0 mt-0.5" />
+            <div className="leading-relaxed">
+              <strong>Diretriz de Consumo de Bordo:</strong> Use <strong>5s</strong> em aproximações críticas de barra, lajes e atracação. Ao iniciar pernada longa de alto-mar ou fundear, selecione <strong>30s</strong> ou <strong>60s</strong> para garantir que o aparelho mantenha carga para emergências e comunicações VHF.
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* 3. CABEÇALHO DE REGRAS E BOTÃO NOVO ALERTA */}
@@ -636,10 +861,10 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
                     }
                     className="flex-1 p-2 border-2 border-black bg-white font-bold cursor-pointer"
                   >
-                    <option value="danger">Alarme de Perigo</option>
-                    <option value="sonar">Sonar Náutico</option>
-                    <option value="foghorn">Buzina de Nevoeiro</option>
-                    <option value="shipbell">Sino de Bordo</option>
+                    <option value="danger">🚨 Sirene de Emergência (Sirene)</option>
+                    <option value="shipbell">🔔 Sino de Navio (Badalada)</option>
+                    <option value="foghorn">📯 Buzina de Neblina (Foghorn)</option>
+                    <option value="sonar">📡 Sonar Náutico (Ping)</option>
                   </select>
                   <button
                     type="button"
@@ -693,15 +918,38 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
                 <div className="text-[11px] text-[#666] mt-0.5">{rule.description}</div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => maritimeAudio.playSound(rule.soundType)}
-                  className="px-2 py-1 text-[11px] font-bold uppercase border-2 border-black bg-white hover:bg-[#eeebe6] flex items-center gap-1 cursor-pointer"
-                  title="Ouvir som deste alerta"
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {/* Seletor Rápido de Toque Náutico na Regra */}
+                <div
+                  className="flex items-center border-2 border-black bg-white"
+                  title="Alterar toque náutico atribuído a esta regra"
                 >
-                  <Volume2 className="w-3 h-3 text-[#d42020]" />
-                  <span>{getSoundLabel(rule.soundType)}</span>
-                </button>
+                  <select
+                    value={rule.soundType}
+                    onChange={(e) =>
+                      handleUpdateRuleSound(
+                        rule.id,
+                        e.target.value as 'sonar' | 'foghorn' | 'shipbell' | 'danger'
+                      )
+                    }
+                    className="px-2 py-1 text-[11px] font-bold uppercase bg-transparent cursor-pointer border-none outline-none"
+                    aria-label={`Toque náutico da regra ${rule.title}`}
+                  >
+                    <option value="danger">🚨 Sirene</option>
+                    <option value="shipbell">🔔 Sino de Navio</option>
+                    <option value="foghorn">📯 Buzina de Neblina</option>
+                    <option value="sonar">📡 Sonar Náutico</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => maritimeAudio.playSound(rule.soundType)}
+                    className="p-1 hover:bg-[#eee] border-l border-black cursor-pointer text-[#d42020]"
+                    title={`Testar toque (${getSoundLabel(rule.soundType)})`}
+                    aria-label={`Testar som da regra ${rule.title}`}
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
 
                 <button
                   onClick={() => handleToggleRule(rule.id)}
@@ -723,6 +971,202 @@ export const AlertsManager: React.FC<AlertsManagerProps> = ({
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* 4.5. SEÇÃO EXCLUSIVA: SELEÇÃO DE TOQUES NÁUTICOS POR REGRA DE ALERTA */}
+      <div className="border-2 border-black bg-white p-4 sm:p-5 shadow-[3px_3px_0px_#000] space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b-2 border-black">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Music className="w-5 h-5 text-black" />
+              <h4 className="font-display text-lg font-bold uppercase text-black tracking-wide">
+                Toques Náuticos por Regra de Alerta
+              </h4>
+              <span className="px-2 py-0.5 text-[9px] font-black uppercase bg-black text-white">
+                Síntese Acústica Marítima
+              </span>
+            </div>
+            <p className="text-[11px] text-[#555] mt-1.5 leading-relaxed">
+              Personalize o padrão acústico sintetizado em tempo real via <strong>Web Audio API</strong> para cada regra de monitoramento. Alterne entre <strong>Sirene</strong>, <strong>Sino de Navio</strong>, <strong>Buzina de Neblina</strong> e <strong>Sonar</strong> para reconhecer a severidade do evento auditivamente sem desviar o olhar do leme.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[10px] text-[#555] font-bold uppercase bg-[#f5f5f5] px-2.5 py-1 border border-black/20">
+              {rules.length} {rules.length === 1 ? 'REGRA CADASTRADA' : 'REGRAS CADASTRADAS'}
+            </span>
+          </div>
+        </div>
+
+        {/* BANCADA ACÚSTICA: DEMONSTRAÇÃO E PRÉ-ESCUTA DOS TOQUES NÁUTICOS */}
+        <div className="bg-[#f8f7f4] border-2 border-black p-3.5 space-y-2.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-1.5 border-b border-black/15">
+            <span className="text-[10px] font-black uppercase tracking-wider text-black flex items-center gap-1.5">
+              <Volume2 className="w-3.5 h-3.5 text-[#d42020]" />
+              Bancada Acústica // Demonstração dos Toques Disponíveis
+            </span>
+            <span className="text-[9px] text-[#777] font-mono">
+              Clique em "Ouvir" para escutar o timbre de cada sinal antes de associar
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            {NAUTICAL_RINGTONES.map((rt) => (
+              <div
+                key={`bench-${rt.id}`}
+                className="p-3 bg-white border-2 border-black flex flex-col justify-between gap-2.5 shadow-[2px_2px_0px_#000]"
+              >
+                <div>
+                  <div className="flex items-center justify-between pb-1.5 border-b border-black/10">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-lg">{rt.icon}</span>
+                      <span className="text-xs font-bold text-black uppercase">
+                        {rt.shortName}
+                      </span>
+                    </div>
+                    <span
+                      className={`text-[8px] font-black px-1.5 py-0.5 border border-black uppercase ${
+                        rt.id === 'danger'
+                          ? 'bg-[#fee2e2] text-[#b91c1c]'
+                          : rt.id === 'shipbell'
+                          ? 'bg-[#fef3c7] text-[#92400e]'
+                          : rt.id === 'foghorn'
+                          ? 'bg-[#e0e7ff] text-[#3730a3]'
+                          : 'bg-[#e0f2fe] text-[#0369a1]'
+                      }`}
+                    >
+                      {rt.badge}
+                    </span>
+                  </div>
+
+                  <p className="text-[10px] text-[#444] mt-2 leading-relaxed">
+                    {rt.description}
+                  </p>
+
+                  <div className="mt-2 text-[9px] text-[#666] border-t border-dashed border-[#ccc] pt-1.5">
+                    <span className="font-bold text-black">Ideal para:</span> {rt.recommendedFor}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => maritimeAudio.playSound(rt.id)}
+                  className="w-full py-1.5 px-2 bg-black hover:bg-[#333] text-white text-[10px] font-bold uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:translate-x-0.5 active:translate-y-0.5 transition-colors"
+                  title={`Ouvir toque sonoro de ${rt.name}`}
+                >
+                  <Play className="w-3 h-3 fill-current" />
+                  <span>OUVIR {rt.shortName.toUpperCase()}</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* SELETOR INTERATIVO DE TOQUE PARA CADA REGRA ESPECÍFICA */}
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-black flex items-center gap-1.5">
+              <Sliders className="w-3.5 h-3.5 text-black" />
+              Associação de Toques por Regra de Alerta Específica:
+            </span>
+            <span className="text-[10px] text-[#777] hidden sm:inline">
+              O toque toca imediatamente ao ser selecionado
+            </span>
+          </div>
+
+          {rules.length === 0 ? (
+            <div className="p-4 border-2 border-dashed border-black/30 text-center text-xs text-[#777] bg-[#fdfdfd]">
+              Nenhuma regra de alerta cadastrada no momento. Clique em <strong>"Criar Novo Alerta"</strong> acima para adicionar regras e associar seus toques náuticos.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {rules.map((rule) => {
+                const currentRingtone =
+                  NAUTICAL_RINGTONES.find((r) => r.id === rule.soundType) || NAUTICAL_RINGTONES[0];
+                return (
+                  <div
+                    key={`sound-assignment-${rule.id}`}
+                    className={`p-3.5 border-2 border-black flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 shadow-[2px_2px_0px_#000] transition-colors ${
+                      rule.enabled ? 'bg-white' : 'bg-[#eeebe6] opacity-75'
+                    }`}
+                  >
+                    {/* Detalhes da Regra */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-xs uppercase text-black">
+                          {rule.title}
+                        </span>
+                        <span className="bg-black text-white px-1.5 py-0.2 text-[10px] font-bold">
+                          {rule.operator === 'greater_than' ? '>' : '<'} {rule.thresholdValue}{' '}
+                          {rule.unit}
+                        </span>
+                        <span
+                          className={`text-[9px] font-bold px-2 py-0.5 border border-black uppercase flex items-center gap-1 ${
+                            rule.soundType === 'danger'
+                              ? 'bg-[#d42020] text-white'
+                              : 'bg-[#f0f0f0] text-black'
+                          }`}
+                        >
+                          <span>{currentRingtone.icon}</span>
+                          <span>Ativo: {currentRingtone.name}</span>
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#555] mt-1 leading-snug">
+                        {rule.description}
+                      </p>
+                    </div>
+
+                    {/* Botões dos 3 Toques Náuticos Principais (+ Sonar) */}
+                    <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                      {NAUTICAL_RINGTONES.map((tone) => {
+                        const isSelected = rule.soundType === tone.id;
+                        return (
+                          <button
+                            key={tone.id}
+                            type="button"
+                            onClick={() => handleUpdateRuleSound(rule.id, tone.id)}
+                            className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black cursor-pointer flex items-center gap-1.5 transition-all active:translate-x-0.5 active:translate-y-0.5 ${
+                              isSelected
+                                ? tone.id === 'danger'
+                                  ? 'bg-[#d42020] text-white shadow-[2px_2px_0px_#000]'
+                                  : 'bg-black text-white shadow-[2px_2px_0px_#000]'
+                                : 'bg-white hover:bg-[#f0ede6] text-black shadow-[1px_1px_0px_#000]'
+                            }`}
+                            title={`Atribuir ${tone.name} à regra "${rule.title}" (toca demonstração)`}
+                          >
+                            <span>{tone.icon}</span>
+                            <span>{tone.shortName}</span>
+                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                          </button>
+                        );
+                      })}
+
+                      {/* Botão de Testar Toque desta Regra */}
+                      <button
+                        type="button"
+                        onClick={() => maritimeAudio.playSound(rule.soundType)}
+                        aria-label={`Testar toque sonoro atribuído à regra ${rule.title}`}
+                        className="px-2.5 py-1.5 bg-[#f8f7f4] hover:bg-black hover:text-white text-black text-xs font-bold uppercase border-2 border-black cursor-pointer flex items-center gap-1 transition-colors shadow-[1px_1px_0px_#000]"
+                        title={`Ouvir o toque atual desta regra (${currentRingtone.name})`}
+                      >
+                        <Volume2 className="w-3.5 h-3.5 text-[#d42020]" />
+                        <span className="hidden sm:inline">TESTAR</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Rodapé Informativo: Boas Práticas Marinheiras */}
+        <div className="flex items-start gap-2 bg-[#f8f7f4] p-2.5 border border-black/20 text-[11px] text-[#444] mt-1">
+          <Info className="w-3.5 h-3.5 text-black shrink-0 mt-0.5" />
+          <div className="leading-relaxed">
+            <strong>Recomendação de Bordo (NORMAM):</strong> Utilize a <strong>Sirene</strong> para riscos de encalhe físico e colisão com pedras/lajes; reserve o <strong>Sino de Navio</strong> para lembretes de maré de sizígia e rotinas de vigia; e destine a <strong>Buzina de Neblina</strong> para ventanias severas (&gt; 25 nós) e correntezas de barra para simular o sinal fônico de baixa visibilidade marítima.
+          </div>
         </div>
       </div>
 

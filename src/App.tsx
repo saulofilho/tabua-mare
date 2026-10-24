@@ -252,6 +252,29 @@ export default function App() {
   });
   const [hasRealGPS, setHasRealGPS] = useState<boolean>(false);
 
+  // GPS update rate in seconds for battery optimization in long voyages (5s, 10s, 30s, 60s)
+  const [gpsInterval, setGpsInterval] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('maresegura_gps_interval');
+      if (saved) {
+        const val = parseInt(saved, 10);
+        if ([5, 10, 30, 60].includes(val)) return val;
+      }
+      return 10;
+    } catch {
+      return 10;
+    }
+  });
+
+  const handleUpdateGpsInterval = useCallback((sec: number) => {
+    setGpsInterval(sec);
+    try {
+      localStorage.setItem('maresegura_gps_interval', String(sec));
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // Vessel Position coordinates (for navigation, simulation and geofence proximity alerts)
   const [vesselCoords, setVesselCoords] = useState<{ lat: number; lng: number }>({
     lat: -12.9667,
@@ -397,6 +420,17 @@ export default function App() {
   useEffect(() => {
     handleRequestGPS();
   }, [handleRequestGPS]);
+
+  // Polling periódico do GPS respeitando a taxa de economia de bateria definida (5s, 10s, 30s, 60s)
+  useEffect(() => {
+    if (!('geolocation' in navigator)) return;
+
+    const timer = setInterval(() => {
+      handleRequestGPS();
+    }, gpsInterval * 1000);
+
+    return () => clearInterval(timer);
+  }, [gpsInterval, handleRequestGPS]);
 
   // Real-time clock update (every 5 seconds)
   useEffect(() => {
@@ -819,6 +853,7 @@ export default function App() {
               onOpenDownloadModal={() => setIsOfflineModalOpen(true)}
               vesselCoords={vesselCoords}
               onVesselPositionChange={handleVesselPositionChange}
+              gpsInterval={gpsInterval}
             />
           </TacticalErrorBoundary>
         )}
@@ -854,6 +889,8 @@ export default function App() {
               vesselCoords={vesselCoords}
               onSimulateVesselApproach={handleSimulateVesselApproach}
               onResetVesselPosition={handleResetVesselPosition}
+              gpsInterval={gpsInterval}
+              onUpdateGpsInterval={handleUpdateGpsInterval}
             />
           </TacticalErrorBoundary>
         )}

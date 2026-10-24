@@ -39,7 +39,7 @@ import { TideCurveCanvas } from './components/TideCurveCanvas';
 import { WaveWindChartSkeleton } from './components/TacticalSkeletons';
 import { analytics } from './services/analytics';
 import { alertNotificationService } from './services/alertNotificationService';
-import { Download } from 'lucide-react';
+import { Download, ArrowLeft } from 'lucide-react';
 import WaveWindForecastBarChart from './components/WaveWindForecastBarChart';
 import TacticalErrorBoundary from './components/TacticalErrorBoundary';
 
@@ -51,6 +51,9 @@ import { OfflineManagerModal } from './components/OfflineManagerModal';
 import { VesselConfigModal } from './components/VesselConfigModal';
 import { LocationSearchModal } from './components/LocationSearchModal';
 import { EmergencySOSModal } from './components/EmergencySOSModal';
+import { NavigationFeatureGrid, NavTabId } from './components/NavigationFeatureGrid';
+import { WaveWindForecastView } from './components/WaveWindForecastView';
+import { TideHistoryView } from './components/TideHistoryView';
 
 const DEFAULT_VESSEL: VesselProfile = {
   name: 'Albatroz',
@@ -190,7 +193,7 @@ const INITIAL_RULES: TideAlertRule[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'tides' | 'map' | 'logbook' | 'alerts' | 'offline' | 'converter'>('tides');
+  const [activeTab, setActiveTab] = useState<NavTabId>('tides');
   const [station, setStation] = useState<TideStation>(TIDE_STATIONS[0]);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(getOfflineModeActive());
@@ -784,7 +787,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 1: Tábua de Marés */}
+        {/* Tab 1: Tábua de Marés (PURA, RÁPIDA, LEVE E SEM SOBRECARGA) */}
         {activeTab === 'tides' && (
           <div>
             <TideDashboard
@@ -806,32 +809,13 @@ export default function App() {
               onOpenAlertsModal={() => setActiveTab('alerts')}
               onOpenLogbook={() => setActiveTab('logbook')}
               onOpenConverter={() => setActiveTab('converter')}
+              onOpenForecast={() => setActiveTab('forecast')}
+              onOpenHistory={() => setActiveTab('history')}
+              showAnalysisCharts={false}
               currentTime={currentTime}
             />
 
-            {/* PREVISÃO DE ONDAS E VELOCIDADE DO VENTO 24H (TELEMETRIA OCEÂNICA) */}
-            <TacticalErrorBoundary fallbackTitle="Previsão de Ondas e Ventos">
-              <LazyViewportContainer fallback={<WaveWindChartSkeleton />}>
-                <WaveWindForecastBarChart
-                  station={station}
-                  beachLat={selectedBeach?.lat}
-                  beachLng={selectedBeach?.lng}
-                  locationName={selectedBeach?.name || station.name}
-                  isOfflineMode={isOfflineMode}
-                />
-              </LazyViewportContainer>
-            </TacticalErrorBoundary>
-
-            {/* REPRESENTAÇÃO VISUAL DA MARÉ (Corte Transversal & Coluna d'Água) */}
-            <VisualTideGauge
-              currentHeight={status.currentHeight}
-              maxTideRange={station.averageRange}
-              status={status}
-              todayExtremes={todayExtremes}
-              vessel={vessel}
-              stationName={selectedBeach.name}
-            />
-
+            {/* CURVA ASTRONÔMICA 24H (CANVAS LEVE NATIVO) */}
             <TideCurveCanvas
               station={station}
               vessel={vessel}
@@ -839,65 +823,158 @@ export default function App() {
               lowTideAlertThreshold={0.55}
               timeRange={timeRange}
             />
+
+            {/* GRID DE CARDS/LINKS QUE LEVAM PARA AS DEMAIS FEATURES */}
+            <NavigationFeatureGrid
+              onNavigate={(tab) => setActiveTab(tab)}
+              onOpenVesselModal={() => setIsVesselModalOpen(true)}
+              status={status}
+              marineConditions={marineConditions}
+              activeAlertsCount={activeAlerts.length}
+              logbookEntriesCount={logbookEntries.length}
+              stationName={station.name}
+              vesselName={vessel.name}
+              vesselDraft={vessel.draft}
+              isOfflineMode={isOfflineMode}
+            />
           </div>
         )}
 
-        {/* Tab 2: Carta Náutica & GPS */}
-        {activeTab === 'map' && (
-          <TacticalErrorBoundary fallbackTitle="Falha ao carregar Carta Náutica">
-            <NauticalMapView
+        {/* Tab 2: Previsão de Ondas & Rosa dos Ventos */}
+        {activeTab === 'forecast' && (
+          <TacticalErrorBoundary fallbackTitle="Previsão de Ondas e Ventos">
+            <WaveWindForecastView
               station={station}
-              vessel={vessel}
-              currentTideHeight={status.currentHeight}
+              beachLat={selectedBeach?.lat}
+              beachLng={selectedBeach?.lng}
+              locationName={selectedBeach?.name || station.name}
               isOfflineMode={isOfflineMode}
-              onOpenDownloadModal={() => setIsOfflineModalOpen(true)}
-              vesselCoords={vesselCoords}
-              onVesselPositionChange={handleVesselPositionChange}
-              gpsInterval={gpsInterval}
+              onBackToTides={() => setActiveTab('tides')}
             />
           </TacticalErrorBoundary>
         )}
 
-        {/* Tab 3: Diário de Navegação */}
+        {/* Tab 3: Carta Náutica & Radar GNSS */}
+        {activeTab === 'map' && (
+          <div>
+            <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#161b22] px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 font-mono">
+              <button
+                onClick={() => setActiveTab('tides')}
+                className="px-3 py-1.5 bg-black hover:bg-[#333] text-white dark:bg-white dark:text-black dark:hover:bg-[#eee] text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer flex items-center gap-2 shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>VOLTAR PARA TÁBUA DE MARÉ</span>
+              </button>
+              <span className="text-xs font-bold text-[#666] uppercase hidden sm:inline">
+                CARTA NÁUTICA & RADAR GNSS
+              </span>
+            </div>
+            <TacticalErrorBoundary fallbackTitle="Falha ao carregar Carta Náutica">
+              <NauticalMapView
+                station={station}
+                vessel={vessel}
+                currentTideHeight={status.currentHeight}
+                isOfflineMode={isOfflineMode}
+                onOpenDownloadModal={() => setIsOfflineModalOpen(true)}
+                vesselCoords={vesselCoords}
+                onVesselPositionChange={handleVesselPositionChange}
+                gpsInterval={gpsInterval}
+              />
+            </TacticalErrorBoundary>
+          </div>
+        )}
+
+        {/* Tab 4: Diário de Navegação */}
         {activeTab === 'logbook' && (
-          <TacticalErrorBoundary fallbackTitle="Falha ao carregar Diário de Bordo">
-            <NavigationLogbook
-              entries={logbookEntries}
-              onAddEntry={handleAddLogEntry}
-              onUpdateEntry={handleUpdateLogEntry}
-              onDeleteEntry={handleDeleteLogEntry}
-              currentStation={station}
-              currentStatus={status}
-              currentVessel={vessel}
-              realMarineConditions={marineConditions}
-              tempUnit={tempUnit}
-              activeBeachName={selectedBeach.name}
-            />
-          </TacticalErrorBoundary>
+          <div>
+            <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#161b22] px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 font-mono">
+              <button
+                onClick={() => setActiveTab('tides')}
+                className="px-3 py-1.5 bg-black hover:bg-[#333] text-white dark:bg-white dark:text-black dark:hover:bg-[#eee] text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer flex items-center gap-2 shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>VOLTAR PARA TÁBUA DE MARÉ</span>
+              </button>
+              <span className="text-xs font-bold text-[#666] uppercase hidden sm:inline">
+                DIÁRIO DE NAVEGAÇÃO & SINGRADURAS
+              </span>
+            </div>
+            <TacticalErrorBoundary fallbackTitle="Falha ao carregar Diário de Bordo">
+              <NavigationLogbook
+                entries={logbookEntries}
+                onAddEntry={handleAddLogEntry}
+                onUpdateEntry={handleUpdateLogEntry}
+                onDeleteEntry={handleDeleteLogEntry}
+                currentStation={station}
+                currentStatus={status}
+                currentVessel={vessel}
+                realMarineConditions={marineConditions}
+                tempUnit={tempUnit}
+                activeBeachName={selectedBeach.name}
+              />
+            </TacticalErrorBoundary>
+          </div>
         )}
 
-        {/* Tab 4: Alertas */}
+        {/* Tab 5: Central de Alertas */}
         {activeTab === 'alerts' && (
-          <TacticalErrorBoundary fallbackTitle="Falha ao carregar Central de Alertas">
-            <AlertsManager
-              rules={rules}
-              onUpdateRules={handleUpdateRules}
-              activeAlerts={activeAlerts}
-              currentStatus={status}
-              vessel={vessel}
+          <div>
+            <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#161b22] px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 font-mono">
+              <button
+                onClick={() => setActiveTab('tides')}
+                className="px-3 py-1.5 bg-black hover:bg-[#333] text-white dark:bg-white dark:text-black dark:hover:bg-[#eee] text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer flex items-center gap-2 shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>VOLTAR PARA TÁBUA DE MARÉ</span>
+              </button>
+              <span className="text-xs font-bold text-[#666] uppercase hidden sm:inline">
+                CENTRAL DE ALERTAS & TOQUES NÁUTICOS
+              </span>
+            </div>
+            <TacticalErrorBoundary fallbackTitle="Falha ao carregar Central de Alertas">
+              <AlertsManager
+                rules={rules}
+                onUpdateRules={handleUpdateRules}
+                activeAlerts={activeAlerts}
+                currentStatus={status}
+                vessel={vessel}
+                station={station}
+                vesselCoords={vesselCoords}
+                onSimulateVesselApproach={handleSimulateVesselApproach}
+                onResetVesselPosition={handleResetVesselPosition}
+                gpsInterval={gpsInterval}
+                onUpdateGpsInterval={handleUpdateGpsInterval}
+              />
+            </TacticalErrorBoundary>
+          </div>
+        )}
+
+        {/* Tab 6: Histórico Comparativo (Real vs. Astro) */}
+        {activeTab === 'history' && (
+          <TacticalErrorBoundary fallbackTitle="Falha ao carregar Histórico das Marés">
+            <TideHistoryView
               station={station}
-              vesselCoords={vesselCoords}
-              onSimulateVesselApproach={handleSimulateVesselApproach}
-              onResetVesselPosition={handleResetVesselPosition}
-              gpsInterval={gpsInterval}
-              onUpdateGpsInterval={handleUpdateGpsInterval}
+              currentTime={currentTime}
+              onBackToTides={() => setActiveTab('tides')}
             />
           </TacticalErrorBoundary>
         )}
 
-        {/* Tab 4: Cartas Offline */}
+        {/* Tab 7: Cartas Offline */}
         {activeTab === 'offline' && (
           <div className="p-6 bg-white border-b-2 border-black space-y-6">
+            <div className="flex items-center justify-between pb-3 border-b-2 border-black">
+              <button
+                onClick={() => setActiveTab('tides')}
+                className="px-3 py-1.5 bg-black hover:bg-[#333] text-white text-xs font-bold uppercase border-2 border-black cursor-pointer flex items-center gap-2 shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>VOLTAR PARA TÁBUA DE MARÉ</span>
+              </button>
+              <span className="text-xs font-bold text-[#666] uppercase hidden sm:inline">
+                GERENCIADOR DE CARTAS OFFLINE
+              </span>
+            </div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b-2 border-black">
               <div>
                 <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#888888] block">
@@ -961,21 +1038,35 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 5: Conversor de Unidades Náuticas */}
+        {/* Tab 8: Conversor de Unidades Náuticas */}
         {activeTab === 'converter' && (
-          <TacticalErrorBoundary fallbackTitle="Falha ao carregar Conversor de Unidades">
-            <NauticalUnitConverter
-              currentWindSpeedKnots={
-                marineConditions?.windSpeedKmH
-                  ? Math.round((marineConditions.windSpeedKmH / 1.852) * 10) / 10
-                  : undefined
-              }
-              currentPressureHpa={1013.25}
-              station={station}
-              userCoords={userCoords}
-              onNavigateToTides={() => setActiveTab('tides')}
-            />
-          </TacticalErrorBoundary>
+          <div>
+            <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#161b22] px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 font-mono">
+              <button
+                onClick={() => setActiveTab('tides')}
+                className="px-3 py-1.5 bg-black hover:bg-[#333] text-white dark:bg-white dark:text-black dark:hover:bg-[#eee] text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer flex items-center gap-2 shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>VOLTAR PARA TÁBUA DE MARÉ</span>
+              </button>
+              <span className="text-xs font-bold text-[#666] uppercase hidden sm:inline">
+                CALCULADORA & CONVERSOR DE UNIDADES
+              </span>
+            </div>
+            <TacticalErrorBoundary fallbackTitle="Falha ao carregar Conversor de Unidades">
+              <NauticalUnitConverter
+                currentWindSpeedKnots={
+                  marineConditions?.windSpeedKmH
+                    ? Math.round((marineConditions.windSpeedKmH / 1.852) * 10) / 10
+                    : undefined
+                }
+                currentPressureHpa={1013.25}
+                station={station}
+                userCoords={userCoords}
+                onNavigateToTides={() => setActiveTab('tides')}
+              />
+            </TacticalErrorBoundary>
+          </div>
         )}
       </div>
 

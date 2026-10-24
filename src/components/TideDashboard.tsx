@@ -46,6 +46,9 @@ interface TideDashboardProps {
   onOpenAlertsModal: () => void;
   onOpenLogbook?: () => void;
   onOpenConverter?: () => void;
+  onOpenForecast?: () => void;
+  onOpenHistory?: () => void;
+  showAnalysisCharts?: boolean;
   currentTime?: number;
 }
 
@@ -63,6 +66,9 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
   onOpenAlertsModal,
   onOpenLogbook,
   onOpenConverter,
+  onOpenForecast,
+  onOpenHistory,
+  showAnalysisCharts = false,
   currentTime,
 }) => {
   const [viewMode, setViewMode] = useState<'timeline' | 'cards' | 'table'>('timeline');
@@ -759,13 +765,17 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
 
               <button
                 onClick={() => {
-                  const el = document.getElementById('wave-wind-forecast-section');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  if (onOpenForecast) {
+                    onOpenForecast();
+                  } else {
+                    const el = document.getElementById('wave-wind-forecast-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }
                 }}
                 className="w-full mt-2 py-1.5 px-2 bg-black text-white hover:bg-[#333] dark:bg-white dark:text-black dark:hover:bg-[#eee] text-[10px] font-bold uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition-colors"
               >
                 <Waves className="w-3.5 h-3.5 text-[#0284c7]" />
-                <span>Ver Gráfico 24h de Ondas e Ventos ↓</span>
+                <span>Abrir Previsão de Ondas e Ventos 24h →</span>
               </button>
             </div>
 
@@ -793,87 +803,91 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
       </div>
 
       {/* 4. SELETOR DE ANÁLISE TEMPORAL (HISTÓRICO 24H REAL VS ASTRO, 7 DIAS PASSADOS & PREVISÃO) */}
-      <div className="border-b-2 border-black dark:border-[#30363d] bg-[#f8f7f4] dark:bg-[#161b22] px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-[#0284c7]" />
-          <span className="font-display font-bold text-xs uppercase tracking-tight text-black dark:text-white">
-            Análise Histórica & Astronômica das Marés
-          </span>
-        </div>
+      {showAnalysisCharts && (
+        <>
+          <div className="border-b-2 border-black dark:border-[#30363d] bg-[#f8f7f4] dark:bg-[#161b22] px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-[#0284c7]" />
+              <span className="font-display font-bold text-xs uppercase tracking-tight text-black dark:text-white">
+                Análise Histórica & Astronômica das Marés
+              </span>
+            </div>
 
-        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Visualização de análise de maré">
-          <button
-            onClick={() => setTideAnalysisView('24h')}
-            aria-pressed={tideAnalysisView === '24h'}
-            className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer transition-colors flex items-center gap-1.5 ${
-              tideAnalysisView === '24h'
-                ? 'bg-[#0284c7] text-white border-[#0284c7]'
-                : 'bg-white text-black dark:bg-[#0d1117] dark:text-white hover:bg-[#eee] dark:hover:bg-[#21262d]'
-            }`}
-          >
-            <Activity className="w-3.5 h-3.5" />
-            <span>Últimas 24h: Real vs. Astronômica</span>
-          </button>
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Visualização de análise de maré">
+              <button
+                onClick={() => setTideAnalysisView('24h')}
+                aria-pressed={tideAnalysisView === '24h'}
+                className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer transition-colors flex items-center gap-1.5 ${
+                  tideAnalysisView === '24h'
+                    ? 'bg-[#0284c7] text-white border-[#0284c7]'
+                    : 'bg-white text-black dark:bg-[#0d1117] dark:text-white hover:bg-[#eee] dark:hover:bg-[#21262d]'
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5" />
+                <span>Últimas 24h: Real vs. Astronômica</span>
+              </button>
 
-          <button
-            onClick={() => setTideAnalysisView('history')}
-            aria-pressed={tideAnalysisView === 'history'}
-            className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer transition-colors flex items-center gap-1.5 ${
-              tideAnalysisView === 'history'
-                ? 'bg-black text-white dark:bg-white dark:text-black'
-                : 'bg-white text-black dark:bg-[#0d1117] dark:text-white hover:bg-[#eee] dark:hover:bg-[#21262d]'
-            }`}
-          >
-            <History className="w-3.5 h-3.5 text-[#d42020]" />
-            <span>Últimos 7 Dias</span>
-          </button>
+              <button
+                onClick={() => setTideAnalysisView('history')}
+                aria-pressed={tideAnalysisView === 'history'}
+                className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer transition-colors flex items-center gap-1.5 ${
+                  tideAnalysisView === 'history'
+                    ? 'bg-black text-white dark:bg-white dark:text-black'
+                    : 'bg-white text-black dark:bg-[#0d1117] dark:text-white hover:bg-[#eee] dark:hover:bg-[#21262d]'
+                }`}
+              >
+                <History className="w-3.5 h-3.5 text-[#d42020]" />
+                <span>Últimos 7 Dias</span>
+              </button>
 
-          <button
-            onClick={() => setTideAnalysisView('forecast')}
-            aria-pressed={tideAnalysisView === 'forecast'}
-            className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer transition-colors flex items-center gap-1.5 ${
-              tideAnalysisView === 'forecast'
-                ? 'bg-black text-white dark:bg-white dark:text-black'
-                : 'bg-white text-black dark:bg-[#0d1117] dark:text-white hover:bg-[#eee] dark:hover:bg-[#21262d]'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>Próximos 7 Dias</span>
-          </button>
+              <button
+                onClick={() => setTideAnalysisView('forecast')}
+                aria-pressed={tideAnalysisView === 'forecast'}
+                className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer transition-colors flex items-center gap-1.5 ${
+                  tideAnalysisView === 'forecast'
+                    ? 'bg-black text-white dark:bg-white dark:text-black'
+                    : 'bg-white text-black dark:bg-[#0d1117] dark:text-white hover:bg-[#eee] dark:hover:bg-[#21262d]'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>Próximos 7 Dias</span>
+              </button>
 
-          <button
-            onClick={() => setTideAnalysisView('all')}
-            aria-pressed={tideAnalysisView === 'all'}
-            className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer transition-colors ${
-              tideAnalysisView === 'all'
-                ? 'bg-black text-white dark:bg-white dark:text-black'
-                : 'bg-white text-black dark:bg-[#0d1117] dark:text-white hover:bg-[#eee] dark:hover:bg-[#21262d]'
-            }`}
-          >
-            Ver Todos
-          </button>
-        </div>
-      </div>
+              <button
+                onClick={() => setTideAnalysisView('all')}
+                aria-pressed={tideAnalysisView === 'all'}
+                className={`px-3 py-1.5 text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer transition-colors ${
+                  tideAnalysisView === 'all'
+                    ? 'bg-black text-white dark:bg-white dark:text-black'
+                    : 'bg-white text-black dark:bg-[#0d1117] dark:text-white hover:bg-[#eee] dark:hover:bg-[#21262d]'
+                }`}
+              >
+                Ver Todos
+              </button>
+            </div>
+          </div>
 
-      {/* SEÇÃO 1: GRÁFICO RECHARTS DE LINHA DAS ÚLTIMAS 24H: REAL VS. ASTRONÔMICA */}
-      {(tideAnalysisView === '24h' || tideAnalysisView === 'all') && (
-        <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#0d1117] p-4 sm:p-6" id="tide-24h-real-vs-astro-section">
-          <TideHistory24hRealVsAstroChart station={station} currentTime={currentTime} />
-        </div>
-      )}
+          {/* SEÇÃO 1: GRÁFICO RECHARTS DE LINHA DAS ÚLTIMAS 24H: REAL VS. ASTRONÔMICA */}
+          {(tideAnalysisView === '24h' || tideAnalysisView === 'all') && (
+            <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#0d1117] p-4 sm:p-6" id="tide-24h-real-vs-astro-section">
+              <TideHistory24hRealVsAstroChart station={station} currentTime={currentTime} />
+            </div>
+          )}
 
-      {/* SEÇÃO 2: HISTÓRICO DE MARÉS DOS ÚLTIMOS 7 DIAS COM RECHARTS */}
-      {(tideAnalysisView === 'history' || tideAnalysisView === 'all') && (
-        <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#0d1117] p-4 sm:p-6" id="past-tide-history-section">
-          <TideHistoryPast7Days station={station} currentTime={currentTime} />
-        </div>
-      )}
+          {/* SEÇÃO 2: HISTÓRICO DE MARÉS DOS ÚLTIMOS 7 DIAS COM RECHARTS */}
+          {(tideAnalysisView === 'history' || tideAnalysisView === 'all') && (
+            <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#0d1117] p-4 sm:p-6" id="past-tide-history-section">
+              <TideHistoryPast7Days station={station} currentTime={currentTime} />
+            </div>
+          )}
 
-      {/* SEÇÃO 3: ESTATÍSTICAS SEMANAIS DA MARÉ COM RECHARTS */}
-      {(tideAnalysisView === 'forecast' || tideAnalysisView === 'all') && (
-        <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#0d1117] p-4 sm:p-6" id="weekly-tide-stats-section">
-          <WeeklyTideStatsChart station={station} currentTime={currentTime} />
-        </div>
+          {/* SEÇÃO 3: ESTATÍSTICAS SEMANAIS DA MARÉ COM RECHARTS */}
+          {(tideAnalysisView === 'forecast' || tideAnalysisView === 'all') && (
+            <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#0d1117] p-4 sm:p-6" id="weekly-tide-stats-section">
+              <WeeklyTideStatsChart station={station} currentTime={currentTime} />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -18,12 +18,24 @@ import {
   SlidersHorizontal,
   X,
   ExternalLink,
+  Wind,
+  Activity,
 } from 'lucide-react';
 import { TemperatureUnit } from '../types/tide';
 
+export type NavTabId =
+  | 'tides'
+  | 'forecast'
+  | 'map'
+  | 'logbook'
+  | 'alerts'
+  | 'history'
+  | 'converter'
+  | 'offline';
+
 export interface TopBarProps {
-  activeTab: 'tides' | 'map' | 'logbook' | 'alerts' | 'offline' | 'converter';
-  onSelectTab: (tab: 'tides' | 'map' | 'logbook' | 'alerts' | 'offline' | 'converter') => void;
+  activeTab: NavTabId;
+  onSelectTab: (tab: NavTabId) => void;
   isOfflineMode: boolean;
   onToggleOfflineMode: () => void;
   onOpenDownloadModal: () => void;
@@ -133,6 +145,14 @@ export const TopBar: React.FC<TopBarProps> = ({
           pulse: false,
         },
         {
+          id: 'forecast' as const,
+          label: 'Ondas & Ventos',
+          shortLabel: 'Ondas & Ventos',
+          icon: Wind,
+          badge: null,
+          pulse: false,
+        },
+        {
           id: 'map' as const,
           label: 'Carta Náutica & GPS',
           shortLabel: 'Carta & GPS',
@@ -146,6 +166,14 @@ export const TopBar: React.FC<TopBarProps> = ({
       group: 'Instrumentos',
       items: [
         {
+          id: 'alerts' as const,
+          label: 'Central de Alertas',
+          shortLabel: 'Alertas',
+          icon: Bell,
+          badge: activeAlertsCount > 0 ? `${activeAlertsCount}` : null,
+          pulse: activeAlertsCount > 0,
+        },
+        {
           id: 'logbook' as const,
           label: 'Diário de Bordo',
           shortLabel: 'Diário',
@@ -154,12 +182,12 @@ export const TopBar: React.FC<TopBarProps> = ({
           pulse: ongoingVoyagesCount > 0,
         },
         {
-          id: 'alerts' as const,
-          label: 'Central de Alertas',
-          shortLabel: 'Alertas',
-          icon: Bell,
-          badge: activeAlertsCount > 0 ? `${activeAlertsCount}` : null,
-          pulse: activeAlertsCount > 0,
+          id: 'history' as const,
+          label: 'Histórico 24h & 7D',
+          shortLabel: 'Histórico',
+          icon: Activity,
+          badge: null,
+          pulse: false,
         },
         {
           id: 'converter' as const,

@@ -220,7 +220,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   ).find((i) => i.id === activeTab);
 
   return (
-    <header className="border-b-2 border-black dark:border-[#30363d] bg-[#f8f7f4] dark:bg-[#0d1117] px-2.5 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-3 sticky top-0 z-40 transition-colors w-full max-w-full overflow-hidden">
+    <header className="border-b-2 border-black dark:border-[#30363d] bg-[#f8f7f4] dark:bg-[#0d1117] px-2.5 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-3 sticky top-0 z-50 transition-colors w-full max-w-full overflow-visible">
       {/* 1. BRAND ZONE (Logo + Título + Status Conexão) */}
       <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         <a
@@ -416,7 +416,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
 
         {/* MENU COMPACTO DE AJUSTES PARA MOBILE / TELAS MENORES (< lg) */}
-        <div className="lg:hidden relative" ref={toolsMenuRef}>
+        <div className="lg:hidden relative z-50" ref={toolsMenuRef}>
           <button
             onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
             aria-label="Abrir menu de ajustes rápidos e configurações de bordo"
@@ -429,7 +429,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
           {/* Popover Tático de Ferramentas Rápidas */}
           {isToolsMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-[#161b22] border-2 border-black dark:border-white p-3 font-mono text-xs shadow-[4px_4px_0px_#000] dark:shadow-[4px_4px_0px_#fff] z-50 space-y-2">
+            <div className="absolute right-0 top-full mt-2 w-60 sm:w-64 bg-white dark:bg-[#161b22] border-2 border-black dark:border-white p-3 font-mono text-xs shadow-[4px_4px_0px_#000] dark:shadow-[4px_4px_0px_#fff] z-[9999] space-y-2.5 pointer-events-auto">
               <div className="flex items-center justify-between pb-1.5 border-b border-black/20 dark:border-white/20">
                 <span className="font-bold uppercase text-[10px] text-[#666] dark:text-[#8b949e]">
                   Ajustes Rápidos de Bordo

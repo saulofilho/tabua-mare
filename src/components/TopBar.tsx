@@ -220,9 +220,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   ).find((i) => i.id === activeTab);
 
   return (
-    <header className="border-b-2 border-black dark:border-[#30363d] bg-[#f8f7f4] dark:bg-[#0d1117] px-3 sm:px-5 py-2.5 flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-40 transition-colors">
+    <header className="border-b-2 border-black dark:border-[#30363d] bg-[#f8f7f4] dark:bg-[#0d1117] px-2.5 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-3 sticky top-0 z-40 transition-colors w-full max-w-full overflow-hidden">
       {/* 1. BRAND ZONE (Logo + Título + Status Conexão) */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         <a
           href="#"
           onClick={(e) => {
@@ -244,111 +244,80 @@ export const TopBar: React.FC<TopBarProps> = ({
             />
           </div>
           <div>
-            <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-[#111111] dark:text-white uppercase m-0 leading-none">
+            <h1 className="font-display text-lg sm:text-xl font-bold tracking-tight text-[#111111] dark:text-white uppercase m-0 leading-none">
               MaréSegura
             </h1>
             <span className="hidden sm:inline-block font-mono text-[9px] font-bold text-[#666] dark:text-[#8b949e] uppercase tracking-wider">
-              {isOfflineMode ? 'Modo Offline Ativo' : 'Sistema Hidrográfico Online'}
+              {isOfflineMode ? 'Modo Offline' : 'Sistema Náutico Online'}
             </span>
           </div>
         </a>
       </div>
 
-      {/* 2. MENU NAVEGAÇÃO RESPONSIVO AGRUPADO POR TIPO */}
-      <div className="flex-1 flex items-center justify-center max-w-3xl px-1">
-        {/* A. VISÃO DESKTOP (Telas Grandes: Abas Agrupadas por Tipo em Linha Única) */}
-        <nav
-          className="hidden xl:flex items-center gap-2 bg-[#eeebe6] dark:bg-[#161b22] p-1 border-2 border-black dark:border-[#30363d]"
-          aria-label="Navegação Principal Agrupada"
-        >
-          {TAB_DEFINITIONS.map((group, gIdx) => (
-            <React.Fragment key={group.group}>
-              {gIdx > 0 && (
-                <div
-                  className="w-[1.5px] h-5 bg-black/20 dark:bg-white/20 mx-0.5"
-                  aria-hidden="true"
-                />
-              )}
-              <div className="flex items-center gap-1">
-                {group.items.map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => onSelectTab(tab.id)}
-                      aria-label={`Aba ${tab.label}`}
-                      aria-current={isActive ? 'page' : undefined}
-                      className={`px-2.5 py-1 text-xs font-mono font-bold uppercase transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                        isActive
-                          ? 'bg-black text-white dark:bg-white dark:text-black shadow-[1px_1px_0px_#d42020]'
-                          : 'bg-white dark:bg-[#21262d] text-black dark:text-white border border-black/30 dark:border-white/30 hover:bg-[#ddd] dark:hover:bg-[#30363d]'
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{tab.shortLabel}</span>
-                      {tab.badge && (
-                        <span
-                          className={`text-[9px] px-1 py-0.2 font-black ${
-                            tab.pulse
-                              ? 'bg-[#d42020] text-white animate-pulse'
-                              : 'bg-black/10 dark:bg-white/10 text-black dark:text-white'
-                          }`}
-                        >
-                          {tab.badge}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </React.Fragment>
-          ))}
-        </nav>
-
-        {/* B. VISÃO RESPONSIVA / COMPACTA (Mobile, Tablets e Telas Médias: SELECT TÁTICO AGRUPADO) */}
-        <div className="xl:hidden w-full max-w-xs relative font-mono">
-          <div className="relative flex items-center bg-white dark:bg-[#161b22] border-2 border-black dark:border-[#30363d] shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#30363d] px-2.5 py-1.5">
-            {/* Ícone e Indicador Visual da Aba Ativa */}
-            <div className="flex items-center gap-2 flex-1 min-w-0 pr-6">
-              {currentTabItem && (
-                <>
-                  <span className="text-[9px] font-black uppercase px-1 py-0.5 bg-black text-white dark:bg-white dark:text-black shrink-0">
-                    {currentTabItem.group}
-                  </span>
-                  <span className="text-xs font-bold uppercase truncate text-black dark:text-white flex items-center gap-1.5">
-                    <currentTabItem.icon className="w-3.5 h-3.5 text-[#d42020] shrink-0" />
-                    <span className="truncate">{currentTabItem.label}</span>
-                  </span>
-                  {currentTabItem.badge && (
-                    <span className="text-[9px] font-bold px-1 bg-[#d42020] text-white shrink-0">
-                      {currentTabItem.badge}
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Ícone Chevron Tático */}
-            <ChevronDown className="w-4 h-4 text-black dark:text-white shrink-0 pointer-events-none absolute right-2.5" />
-
-            {/* SELECT NATIVO TOTALMENTE AGRUPADO POR OPTGROUP */}
-            <select
-              value={activeTab}
-              onChange={(e) => onSelectTab(e.target.value as any)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer font-mono"
-              aria-label="Selecionar módulo da aplicação agrupado por categoria"
+      {/* 2. MENU NAVEGAÇÃO CENTRAL: SELETOR TÁTICO UNIFICADO (NÃO QUEBRA NO FULLSCREEN) */}
+      <div className="flex-1 flex items-center justify-center max-w-md xl:max-w-lg min-w-0 px-1 sm:px-2">
+        <div className="w-full flex items-center gap-1.5 sm:gap-2">
+          {/* Botão de Atalho Rápido para a Tábua de Marés (quando em outra aba) */}
+          {activeTab !== 'tides' && (
+            <button
+              onClick={() => onSelectTab('tides')}
+              title="Voltar para a Tábua de Marés"
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 bg-black text-white dark:bg-white dark:text-black border-2 border-black dark:border-white text-xs font-mono font-bold uppercase shrink-0 shadow-[1px_1px_0px_#000] cursor-pointer hover:bg-[#333] transition-colors"
             >
-              {TAB_DEFINITIONS.map((group) => (
-                <optgroup key={group.group} label={`── ${group.group.toUpperCase()} ──`}>
-                  {group.items.map((tab) => (
-                    <option key={tab.id} value={tab.id}>
-                      {tab.label} {tab.badge ? `(${tab.badge})` : ''}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+              <Waves className="w-3.5 h-3.5 text-[#0284c7]" />
+              <span>Tábua</span>
+            </button>
+          )}
+
+          {/* O SELETOR DE MÓDULO NÁUTICO (SELECT INTERATIVO) */}
+          <div className="flex-1 min-w-0 relative font-mono">
+            <div className="relative flex items-center justify-between bg-white dark:bg-[#161b22] border-2 border-black dark:border-white shadow-[2px_2px_0px_#000] dark:shadow-[2px_2px_0px_#fff] px-2.5 sm:px-3 py-1.5 hover:bg-[#faf9f6] dark:hover:bg-[#1c2128] transition-colors cursor-pointer">
+              {/* Ícone e Indicador Visual do Módulo Ativo */}
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0 pr-2">
+                {currentTabItem && (
+                  <>
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 bg-black text-white dark:bg-white dark:text-black shrink-0 tracking-wider hidden sm:inline-block">
+                      {currentTabItem.group}
+                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <currentTabItem.icon className="w-3.5 h-3.5 text-[#d42020] shrink-0" />
+                      <span className="text-xs font-bold uppercase truncate text-black dark:text-white">
+                        {currentTabItem.label}
+                      </span>
+                    </div>
+                    {currentTabItem.badge && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.2 bg-[#d42020] text-white shrink-0">
+                        {currentTabItem.badge}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Indicador de Seletor Tático com Chevron */}
+              <div className="flex items-center gap-1 shrink-0 text-[#666] dark:text-[#8b949e]">
+                <span className="text-[10px] font-bold uppercase hidden lg:inline tracking-tight">MUDAR</span>
+                <ChevronDown className="w-4 h-4 text-black dark:text-white shrink-0 pointer-events-none" />
+              </div>
+
+              {/* SELECT NATIVO TOTALMENTE ACESSÍVEL E AGRUPADO */}
+              <select
+                value={activeTab}
+                onChange={(e) => onSelectTab(e.target.value as any)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer font-mono"
+                aria-label="Selecionar módulo de navegação náutica"
+              >
+                {TAB_DEFINITIONS.map((group) => (
+                  <optgroup key={group.group} label={`── ${group.group.toUpperCase()} ──`}>
+                    {group.items.map((tab) => (
+                      <option key={tab.id} value={tab.id}>
+                        {tab.label} {tab.badge ? `[${tab.badge}]` : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -382,13 +351,13 @@ export const TopBar: React.FC<TopBarProps> = ({
         )}
 
         {/* Ferramentas em Linha para Desktop (lg+) */}
-        <div className="hidden lg:flex items-center gap-1.5 font-mono text-xs font-bold">
+        <div className="hidden lg:flex items-center gap-1.5 font-mono text-xs font-bold shrink-0 flex-nowrap">
           {/* Unidade °C / °F */}
           <button
             onClick={onToggleTempUnit}
             title="Alternar unidade (°C / °F)"
             aria-label="Alternar unidade entre Celsius e Fahrenheit"
-            className="px-2 py-1.5 border-2 border-black dark:border-white bg-white dark:bg-[#21262d] text-black dark:text-white hover:bg-[#eee] dark:hover:bg-[#30363d] cursor-pointer flex items-center gap-1"
+            className="px-2 py-1.5 border-2 border-black dark:border-white bg-white dark:bg-[#21262d] text-black dark:text-white hover:bg-[#eee] dark:hover:bg-[#30363d] cursor-pointer flex items-center gap-1 shadow-xs shrink-0"
           >
             <Thermometer className="w-3.5 h-3.5 text-[#d42020]" />
             <span>{tempUnit === 'C' ? '°C' : '°F'}</span>
@@ -399,7 +368,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             onClick={onToggleDarkMode}
             title={isDarkMode ? 'Mudar para Modo Claro' : 'Ativar Modo Noturno Tático'}
             aria-label={isDarkMode ? 'Modo Claro' : 'Modo Noturno'}
-            className="p-1.5 border-2 border-black dark:border-white bg-white dark:bg-[#21262d] text-black dark:text-white hover:bg-[#eee] dark:hover:bg-[#30363d] cursor-pointer"
+            className="p-1.5 border-2 border-black dark:border-white bg-white dark:bg-[#21262d] text-black dark:text-white hover:bg-[#eee] dark:hover:bg-[#30363d] cursor-pointer shadow-xs shrink-0"
           >
             {isDarkMode ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-900" />}
           </button>
@@ -409,7 +378,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             onClick={onToggleOfflineMode}
             title="Simular teste de navegação sem sinal de internet"
             aria-label={isOfflineMode ? 'Desativar modo offline de teste' : 'Ativar modo offline de teste'}
-            className={`px-2 py-1.5 border-2 border-black dark:border-white text-xs font-bold uppercase flex items-center gap-1 cursor-pointer transition-colors ${
+            className={`px-2 py-1.5 border-2 border-black dark:border-white text-xs font-bold uppercase flex items-center gap-1 cursor-pointer transition-colors shadow-xs shrink-0 ${
               isOfflineMode
                 ? 'bg-[#d42020] text-white'
                 : 'bg-white dark:bg-[#21262d] text-black dark:text-white hover:bg-[#eee] dark:hover:bg-[#30363d]'
@@ -424,14 +393,14 @@ export const TopBar: React.FC<TopBarProps> = ({
             onClick={handleShare}
             title="Compartilhar link náutico"
             aria-label="Compartilhar link da página"
-            className={`px-2.5 py-1.5 border-2 border-black dark:border-white text-xs font-bold uppercase flex items-center gap-1 cursor-pointer transition-colors ${
+            className={`px-2.5 py-1.5 border-2 border-black dark:border-white text-xs font-bold uppercase flex items-center gap-1 cursor-pointer transition-colors shadow-xs shrink-0 ${
               copiedShare
                 ? 'bg-emerald-600 text-white'
                 : 'bg-white dark:bg-[#21262d] text-black dark:text-white hover:bg-[#eee] dark:hover:bg-[#30363d]'
             }`}
           >
             {copiedShare ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
-            <span className="hidden xl:inline">{copiedShare ? 'Copiado!' : 'Compartilhar'}</span>
+            <span className="hidden 2xl:inline">{copiedShare ? 'Copiado!' : 'Compartilhar'}</span>
           </button>
 
           {/* Baixar Mapas */}
@@ -439,10 +408,10 @@ export const TopBar: React.FC<TopBarProps> = ({
             onClick={onOpenDownloadModal}
             title="Baixar pacotes de mapas e cartas náuticas offline"
             aria-label="Baixar cartas náuticas offline"
-            className="px-2.5 py-1.5 bg-black dark:bg-white text-white dark:text-black text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer hover:bg-[#333] dark:hover:bg-[#eee]"
+            className="px-2.5 py-1.5 bg-black dark:bg-white text-white dark:text-black text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer hover:bg-[#333] dark:hover:bg-[#eee] shadow-xs shrink-0"
           >
             <Download className="w-3.5 h-3.5" />
-            <span className="hidden xl:inline">Baixar Mapas</span>
+            <span className="hidden 2xl:inline">Baixar Mapas</span>
           </button>
         </div>
 

@@ -1,55 +1,141 @@
-# ⚓ MaréSegura — Tábua de Marés & Navegação Offline
+# ⚓ MaréSegura — Tábua de Marés & Navegação Náutica Offline
 
-> Sistema tático de previsão de marés astronômicas em tempo real, monitoramento de ondas oceânicas ao vivo, alertas de segurança para calado de embarcações e cartas náuticas com operação 100% offline.
-
----
-
-## 🧭 Visão Geral
-
-O **MaréSegura** é uma aplicação web progressiva desenvolvida sob a linguagem de design **Tactical Maritime (Variation 6)**, priorizando legibilidade tática de alto contraste, telemetria em tempo real e ausência de dados fictícios (*zero mock*).
-
-Projetado para marinheiros, pescadores, velejadores e navegadores costeiros, o sistema integra harmônicos astronômicos oficiais da Marinha do Brasil (DHN) com a **Open-Meteo Marine API** e geolocalização do dispositivo.
+> Sistema tático de previsão de marés astronômicas em tempo real, telemetria oceanográfica sem dados fictícios (*zero mock*), monitoramento de folga sob a quilha (UKC), alertas sonoros marítimos e cartas náuticas com operação 100% offline.
 
 ---
 
-## ✨ Funcionalidades Principais
+## 🧭 Visão Geral & Arquitetura de Performance
 
-### 1. 📍 Radar de Praia Mais Próxima (Fixado no Topo)
-- **Detecção de GPS Real**: Identifica as coordenadas do dispositivo através de `navigator.geolocation`.
-- **Cálculo Geodésico (Haversine)**: Determina a praia mais próxima com precisão métrica e conversão automática para Quilômetros ($km$) e Milhas Náuticas ($MN$).
-- **Telemetria Imediata**: Exibe a altura da maré atual e a ondulação oceânica ao vivo para o local.
+O **MaréSegura** foi projetado para velejadores, marinheiros, pescadores e navegadores costeiros com base na filosofia **Tactical Maritime**:
+- **Abertura Ultrarrápida**: Ao carregar o aplicativo, é renderizada **apenas a Tábua de Marés principal** com curva em canvas 2D leve. Componentes computacionalmente pesados (gráficos comparativos de 24h/7d em Recharts, simulação 3D Three.js e rosa dos ventos vetorial) só são carregados sob demanda quando o usuário acessa as respectivas seções.
+- **Grid Tático de Funcionalidades**: Na página inicial, logo abaixo da tábua do dia, um grid com 8 cards táticos direciona para cada módulo especializado com navegação imediata e botão de retorno rápido.
+- **Menu Seletor Resiliente a Fullscreen**: Substituiu abas estáticas por um seletor suspenso categorizado (`NAVEGAÇÃO`, `INSTRUMENTOS`, `SISTEMA`), garantindo que o layout nunca quebre em telas cheias, monitores ultrawide ou displays de ponte de comando.
+- **Zero Mock (100% Dados Reais)**: Sem dados estáticos simulados. Harmônicos astronômicos calibrados pela **Diretoria de Hidrografia e Navegação (DHN/Marinha do Brasil)** combinados com telemetria ao vivo da **Open-Meteo Marine API** (modelos NOAA WaveWatch III e ECMWF).
 
-### 2. 🌊 Dados Oceanográficos Reais (Sem Mocks)
-- **Open-Meteo Marine API**: Integração com modelos globais **NOAA WaveWatch III** e **ECMWF**:
-  - Altura real de ondas e ondulação (*swell*) em metros.
+---
+
+## ✨ Módulos e Funcionalidades
+
+### 1. 📊 Tábua de Marés Principal & Curva Interativa
+- **Preia-mar e Baixa-mar Astronômicas**: Horários e alturas exatas calculados com os constituintes harmônicos $M_2, S_2, N_2, K_1, O_1, M_4$ em relação ao **Zero Hidrográfico (ZH)**.
+- **Radar de Praia Mais Próxima**: Identifica coordenadas por GPS (`navigator.geolocation`) e calcula via fórmula geodésica de Haversine a estação litorânea mais próxima com conversão em $km$ e Milhas Náuticas ($MN$).
+- **Curva Suave Contínua**: Renderizada em HTML5 Canvas nativo de alta performance para baixo consumo de bateria em celulares e tablets náuticos.
+- **Histórico Comparativo (Módulo Dedicado)**: Visualização separada com histórico das últimas 24h (Real vs. Astronômico), retrospectiva dos últimos 7 dias e estatísticas semanais.
+
+### 2. 🌊 Previsão de Ondas, Vento & Rosa dos Ventos
+- **Condições Oceânicas Reais**:
+  - Altura significativa de onda e ondulação (*swell*) em metros.
   - Período de onda em segundos ($s$).
-  - Direção angular da onda ($^\circ$) e intensidade do vento costeiro ($km/h$).
-- **Harmônicos Astronômicos Reais**: Fórmulas com constituintes $M_2, S_2, N_2, K_1, O_1, M_4$ calibrados pelo **Zero Hidrográfico (DHN)**.
+  - Direção angular das ondas em graus ($^\circ$).
+  - Velocidade do vento costeiro em nós ($kt$) e $km/h$, com rajadas e classificação na escala Beaufort.
+- **Rosa dos Ventos Tática (16 Pontos)**: Bússola vetorial interativa indicando os rumos cardeais, colaterais e subcolaterais com vetores de vento e ondulação.
 
-### 3. 🔎 Busca de Cidades e Praias
-- **Autocomplete em Tempo Real**: Conexão com a API de Geocodificação aberta e base de praias brasileiras (Copacabana, Maresias, Porto de Galinhas, Praia do Forte, Jericoacoara, Joaquina, Ilhabela, Pipa, etc.).
-- Permite pesquisar qualquer praia, município ou coordenada costeira no Brasil e no mundo.
+### 3. 🗺️ Carta Náutica & Radar GNSS
+- **Camadas Cartográficas OpenSeaMap**:
+  - Auxílios à navegação: faróis, balizas, bóias laterais (boreste/bombordo), perigos isolados, cabos submarinos e profundidades batimétricas.
+- **Rastreamento de Posição em Tempo Real**: Coordenadas em graus e minutos decimais náuticos, rumo sobre o fundo (COG) e velocidade sobre o fundo (SOG).
+- **Modo Noturno Náutico**: Alternância de paleta de alto contraste para não comprometer a visão noturna da tripulação no passadiço.
 
-### 4. 📐 Folga sob a Quilha (Under-Keel Clearance - UKC)
-- Cálculo da profundidade real efetiva:
-  $$\text{Profundidade Real} = \text{Sondagem da Carta (Datum)} + \text{Altura da Maré Atual}$$
-- Subtrai o calado da embarcação (*draft*) e avisa se a margem de segurança foi violada.
+### 4. 🚨 Central de Alertas & Toques Náuticos
+- **Regras Configuráveis de Segurança**:
+  - Limiar de Baixa-mar crítica (risco de encalhe).
+  - Alerta de Preia-mar máxima (cais e marinas inundáveis).
+  - Folga mínima sob a quilha violada.
+  - Alerta de Maré de Sizígia (Lua Nova / Lua Cheia com maior amplitude).
+- **Sintetizador Web Audio API com Múltiplos Toques Náuticos**:
+  - 🚨 **Sirene Náutica**: Modulação de frequência de emergência militar/costeira.
+  - 🔔 **Sino de Navio / Bordo**: Ressonância acústica de bronze tradicional.
+  - 📯 **Buzina de Nevoeiro (Foghorn)**: Tom grave de baixa frequência (110 Hz) com harmônicos para longo alcance.
+  - 📡 **Sonar Náutico**: Pulso acústico clássico de varredura submarina.
+  - Permite atribuir um toque específico para cada regra configurada e testar o áudio no painel.
 
-### 5. 🚨 Alertas Personalizados & Áudio Marítimo
-- Gatilhos para Baixa-mar crítica, Preia-mar máxima, Folga de quilha mínima e Maré de Sizígia.
-- **Sintetizador Web Audio API** autônomo (sonar náutico, buzina de nevoeiro, sino de bordo e alarme de perigo).
+### 5. 📐 Calculadora de Folga sob a Quilha (UKC - Under-Keel Clearance)
+- **Cálculo da Profundidade Real Efetiva**:
+  $$\text{Profundidade Real} = \text{Sondagem da Carta (Datum ZH)} + \text{Altura da Maré Atual}$$
+- **Folga sob a Quilha**:
+  $$\text{UKC} = \text{Profundidade Real} - \text{Calado Máximo da Embarcação}$$
+- Alerta visual instantâneo caso a margem de segurança configurada do barco seja violada.
 
-### 6. 🗺️ Cartas Náuticas & Operação 100% Offline
-- Camadas cartográficas com **OpenSeaMap** (bóias de boreste/bombordo, faróis luminosos, rochedos e baixios).
-- Gerenciador de downloads locais em `CacheStorage` para navegação em alto-mar sem conexão celular.
+### 6. 📖 Diário de Navegação (Logbook) & Conversor Náutico
+- **Livro de Bordo Digital**: Registro de singraduras, waypoints, condições meteorológicas, nível de combustível, motorização e anotações do comandante. Armazenamento local permanente (`localStorage`).
+- **Conversor Náutico Integrado**:
+  - Milhas Náuticas ($MN$) $\leftrightarrow$ Quilômetros ($km$) $\leftrightarrow$ Metros ($m$)
+  - Nós ($kt$) $\leftrightarrow$ Quilômetros por hora ($km/h$) $\leftrightarrow$ Metros por segundo ($m/s$)
+  - Pés ($ft$) $\leftrightarrow$ Metros ($m$) $\leftrightarrow$ Braças ($fathoms$)
+  - Celsius ($^\circ C$) $\leftrightarrow$ Fahrenheit ($^\circ F$)
+
+### 7. 💾 Gerenciador de Cartas Offline & PWA
+- Armazenamento em cache de cartas náuticas para áreas de navegação costeira sem cobertura de sinal 4G/5G celular.
+- Instalação como Web App (PWA) nativo com manifesto e service worker.
 
 ---
 
-## 🚀 Como Executar Localmente
+## 🚀 Publicação na Vercel (Recomendado)
+
+O projeto já inclui o arquivo de configuração `/vercel.json` pré-configurado com regras de reescrita SPA (`Single Page Application`) e controle de cache para assets e Service Worker.
+
+### ❓ Precisa cadastrar Variáveis de Ambiente (ENVs) na Vercel?
+**NÃO!** O MaréSegura opera completamente sem necessidade de cadastrar chaves secretas ou variáveis de ambiente para funcionar:
+- Os cálculos astronômicos de maré são executados localmente no navegador via harmônicos da Marinha (DHN).
+- A telemetria marinha utiliza a API pública e aberta da **Open-Meteo**, sem necessidade de tokens.
+- O sistema de áudio roda direto na **Web Audio API** do navegador.
+- Os mapas utilizam os tiles abertos da OpenStreetMap e OpenSeaMap.
+
+*(Opcional: Apenas caso deseje integrar seu próprio Google Analytics, pode cadastrar `VITE_GA_MEASUREMENT_ID` nas variáveis de ambiente da Vercel).*
+
+### Passo a Passo para Deploy na Vercel:
+1. Faça push do código para o seu repositório no **GitHub** ou **GitLab**.
+2. Acesse [vercel.com](https://vercel.com) e clique em **Add New...** > **Project**.
+3. Importe o repositório do **MaréSegura**.
+4. A Vercel detectará automaticamente o framework como **Vite**:
+   - **Framework Preset**: `Vite`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+5. Clique em **Deploy**. O aplicativo estará online em menos de 1 minuto!
+
+---
+
+## 💰 Como Adicionar e Monetizar com Google Ads (Google AdSense)
+
+O aplicativo **já está 100% preparado** para veicular anúncios e ser aprovado no programa **Google AdSense**.
+
+### 1. Requisitos para Aprovação no Google AdSense
+Para faturar com anúncios no Google, o AdSense analisa o site e exige:
+- **Domínio Próprio Registrado**: (Ex: `maresegura.com.br`, `tábuademares.com`, etc.). Subdomínios compartilhados (como `.vercel.app` ou `.github.io`) costumam ser rejeitados ou demorar meses; um domínio registrado no [Registro.br](https://registro.br) ou Namecheap aumenta a taxa de aprovação para quase 100%.
+- **Política de Privacidade & Termos**: Obrigatório por lei (LGPD/GDPR) e exigência expressa do AdSense para declarar cookies de publicidade. **Já incluído nativamente no app!** O link fica no rodapé e no menu de ferramentas com modal pronto e completo.
+- **Conteúdo Útil e Original**: O MaréSegura atende com louvor este requisito, oferecendo tábuas astronômicas, telemetria oceanográfica e utilitários de navegação.
+
+### 2. Passo a Passo para Ativar os Anúncios:
+1. Acesse [google.com/adsense](https://adsense.google.com/) e cadastre sua conta.
+2. Adicione o seu domínio em **Sites** > **Adicionar site**.
+3. Obtenha seu **ID de Publicador (Client ID)** (começa com `ca-pub-...`).
+4. Crie um **Bloco de Anúncios Responsivo** em **Anúncios** > **Por bloco de anúncios** e copie o **Slot ID**.
+5. No painel da **Vercel** (em *Settings* > *Environment Variables*) ou no seu arquivo `.env.local`, adicione:
+   ```env
+   VITE_GOOGLE_ADSENSE_CLIENT_ID="ca-pub-SEU_NUMERO_AQUI"
+   VITE_GOOGLE_ADSENSE_SLOT_ID="SEU_SLOT_ID_AQUI"
+   ```
+6. O componente `<AdSenseBanner />` cuidará da injeção assíncrona do script oficial do Google, redimensionamento responsivo e tratamento à prova de falhas caso o usuário utilize adblocker.
+
+---
+
+## 🌐 Publicação no GitHub Pages
+
+O repositório também conta com pipeline CI/CD pronta em `.github/workflows/deploy.yml`.
+
+### Como Ativar:
+1. No repositório no GitHub, vá em **Settings** > **Pages**.
+2. Em **Build and deployment** > **Source**, selecione **GitHub Actions**.
+3. Realize um `git push` para a branch `main`.
+4. O GitHub Actions fará o build e publicação automaticamente.
+
+---
+
+## 💻 Como Executar Localmente
 
 ### Pré-requisitos
-- **Node.js** v18+ ou v20+
-- **npm** v9+
+- **Node.js**: v18.x ou v20.x+
+- **npm**: v9.x+
 
 ```bash
 # 1. Clone o repositório
@@ -67,69 +153,24 @@ Acesse no navegador: `http://localhost:3000`
 
 ---
 
-## 🌐 Publicação no GitHub Pages
-
-O repositório já inclui a automação pronta para publicação contínua em `.github/workflows/deploy.yml`.
-
-### Como Ativar:
-1. No repositório no GitHub, acesse **Settings** > **Pages**.
-2. Em **Build and deployment** > **Source**, selecione:
-   - **GitHub Actions**
-3. Faça qualquer `git push` para o branch `main` (ou execute manualmente em **Actions** > **Deploy to GitHub Pages** > **Run workflow**).
-4. O site estará online no endereço: `https://<seu-usuario>.github.io/<nome-do-repositorio>/`
-
----
-
-## 🛠️ Correção Preventiva do GitHub Actions (setup-node lock file)
-
-### O Problema Conhecido:
-Ao usar `actions/setup-node@v4` com a diretiva `cache: 'npm'`, o GitHub Actions busca obrigatoriamente por `package-lock.json`, `npm-shrinkwrap.json` ou `yarn.lock`. Se o arquivo de lock não estiver commitado ou se o projeto tiver usado outro gerenciador (ex: bun), o workflow falha com:
-```
-Error: Dependencies lock file is not found in /home/runner/work/... Supported file patterns: package-lock.json,npm-shrinkwrap.json,yarn.lock
-```
-
-### A Solução Aplicada no Projeto:
-1. **Remoção da restrição de cache rígido**: No `.github/workflows/deploy.yml`, o `actions/setup-node@v4` foi configurado sem forçar o `cache: 'npm'`, evitando a interrupção caso haja discrepância de lockfile.
-2. **Arquivo `.npmrc` com `legacy-peer-deps=true`**: Garante que o `npm install` no runner do GitHub resolva todas as dependências sem erros de pares (`ERESOLVE`).
-3. **`package-lock.json` gerado e padronizado**: Incluído na raiz do projeto para compatibilidade universal.
-4. **`base: './'` no `vite.config.ts`**: Garante que os caminhos dos assets gerados funcionem tanto na raiz quanto em subdiretórios de repositório do GitHub Pages.
-
----
-
-## 🛠️ Correção do Erro `actions/configure-pages@v5` (HttpError: 404 Not Found)
-
-### O Problema Conhecido:
-```
-Run actions/configure-pages@v5
-Error: Get Pages site failed. Please verify that the repository has Pages enabled and configured to build using GitHub Actions...
-Error: HttpError: Not Found - https://docs.github.com/rest/pages/pages#get-a-apiname-pages-site
-```
-Esse erro ocorre quando o GitHub Pages ainda não foi ativado manualmente nas configurações do repositório antes da primeira execução da Action. Por padrão, a API do GitHub retorna `404 Not Found` se o recurso de Pages ainda não existir no repositório.
-
-### A Solução Aplicada no Workflow:
-1. **Ativação Automática (`enablement: true`)**: O workflow agora envia a solicitação para criar e habilitar o Pages automaticamente via API.
-2. **Deploy Dual com Branch `gh-pages` (`peaceiris/actions-gh-pages@v4`)**: O workflow publica a pasta `dist` diretamente na branch `gh-pages` com `contents: write`, que funciona imediatamente mesmo se o Pages ainda não estiver ativo nas configurações.
-3. **Resiliência com `continue-on-error: true`**: Garante que o pipeline continue e publique o site mesmo que a API do GitHub Pages responda com 404 inicial.
-
-### Como Ativar no GitHub:
-- **Opção Recomendada 1 (GitHub Actions)**:
-  Acesse **Settings** > **Pages** > em **Build and deployment** > **Source**, selecione **GitHub Actions**.
-- **Opção Alternativa 2 (Branch gh-pages)**:
-  Acesse **Settings** > **Pages** > em **Build and deployment** > **Source**, selecione **Deploy from a branch** e escolha a branch `gh-pages` (pasta `/ (root)`).
-
----
-
 ## 📦 Scripts Disponíveis
 
 | Comando | Descrição |
 | :--- | :--- |
-| `npm run dev` | Inicia o servidor local com hot-reload na porta 3000 |
-| `npm run build` | Compila o bundle de produção otimizado na pasta `dist/` |
-| `npm run preview` | Visualiza o build de produção localmente |
-| `npm run lint` | Validação de tipos TypeScript |
+| `npm run dev` | Inicia o servidor local na porta 3000 com recarregamento rápido |
+| `npm run build` | Compila o bundle de produção estático ultra-otimizado na pasta `dist/` |
+| `npm run preview` | Executa um servidor local servindo os arquivos compilados da pasta `dist/` |
+| `npm run lint` | Executa a verificação estrita de tipos com `tsc --noEmit` |
+| `npm run test` | Executa a suíte de testes unitários com Vitest (validação de harmônicos e marés) |
+
+---
+
+## 🛡️ Políticas de Segurança & Privacidade
+- O aplicativo não coleta dados de telemetria sem consentimento.
+- As posições de GPS são utilizadas exclusivamente na memória do navegador para cálculo de proximidade e navegação no radar.
+- O diário de bordo e as regras de alerta ficam salvos estritamente no armazenamento local do navegador do comandante (`localStorage`).
 
 ---
 
 ## 📄 Licença
-
-Distribuído sob a licença MIT. Consulte `LICENSE` para mais informações.
+Distribuído sob a licença MIT. Consulte `LICENSE` para mais detalhes.

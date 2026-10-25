@@ -54,6 +54,8 @@ import { EmergencySOSModal } from './components/EmergencySOSModal';
 import { NavigationFeatureGrid, NavTabId } from './components/NavigationFeatureGrid';
 import { WaveWindForecastView } from './components/WaveWindForecastView';
 import { TideHistoryView } from './components/TideHistoryView';
+import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
+import { AdSenseBanner } from './components/AdSenseBanner';
 
 const DEFAULT_VESSEL: VesselProfile = {
   name: 'Albatroz',
@@ -295,6 +297,7 @@ export default function App() {
   const [isOfflineModalOpen, setIsOfflineModalOpen] = useState<boolean>(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState<boolean>(false);
   const [isSOSModalOpen, setIsSOSModalOpen] = useState<boolean>(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState<boolean>(false);
 
   // Vessel Profile state
   const [vessel, setVessel] = useState<VesselProfile>(() => {
@@ -740,6 +743,7 @@ export default function App() {
           onToggleOfflineMode={handleToggleOfflineMode}
           onOpenDownloadModal={() => setIsOfflineModalOpen(true)}
           onOpenSOSModal={() => setIsSOSModalOpen(true)}
+          onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
           timeRange={timeRange}
           onToggleTimeRange={setTimeRange}
           tempUnit={tempUnit}
@@ -837,6 +841,11 @@ export default function App() {
               vesselDraft={vessel.draft}
               isOfflineMode={isOfflineMode}
             />
+
+            {/* Espaço para Google AdSense */}
+            <div className="px-4 sm:px-6">
+              <AdSenseBanner className="max-w-5xl mx-auto" />
+            </div>
           </div>
         )}
 
@@ -1147,7 +1156,16 @@ export default function App() {
           LOCAL: {selectedBeach ? selectedBeach.name.toUpperCase() : station.id.toUpperCase().replace('-', '_')} // HORÁRIO LOCAL:{' '}
           {new Date(currentTime).toLocaleTimeString('pt-BR')}
         </div>
-        <div>ONDAS AO VIVO: OPEN-METEO MARINE // VERSÃO 2.5</div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span>ONDAS AO VIVO: OPEN-METEO MARINE</span>
+          <span className="text-[#888]">•</span>
+          <button
+            onClick={() => setIsPrivacyModalOpen(true)}
+            className="underline hover:text-[#d42020] cursor-pointer"
+          >
+            PRIVACIDADE & ADS
+          </button>
+        </div>
       </footer>
 
       {/* Modais da Aplicação */}
@@ -1191,14 +1209,22 @@ export default function App() {
         <EmergencySOSModal
           isOpen={isSOSModalOpen}
           onClose={() => setIsSOSModalOpen(false)}
-            vessel={vessel}
-            userCoords={userCoords}
-            hasRealGPS={hasRealGPS}
-            station={station}
-            selectedBeachName={selectedBeach?.name}
-            onRequestGPS={handleRequestGPS}
-          />
-        )}
-      </div>
+          vessel={vessel}
+          userCoords={userCoords}
+          hasRealGPS={hasRealGPS}
+          station={station}
+          selectedBeachName={selectedBeach?.name}
+          onRequestGPS={handleRequestGPS}
+        />
+      )}
+
+      {/* Modal de Política de Privacidade & Termos (Exigido pelo Google AdSense) */}
+      {isPrivacyModalOpen && (
+        <PrivacyPolicyModal
+          isOpen={isPrivacyModalOpen}
+          onClose={() => setIsPrivacyModalOpen(false)}
+        />
+      )}
+    </div>
   );
 }

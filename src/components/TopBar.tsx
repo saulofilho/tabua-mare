@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Wind,
   Activity,
+  ShieldCheck,
 } from 'lucide-react';
 import { TemperatureUnit } from '../types/tide';
 
@@ -40,6 +41,7 @@ export interface TopBarProps {
   onToggleOfflineMode: () => void;
   onOpenDownloadModal: () => void;
   onOpenSOSModal: () => void;
+  onOpenPrivacyModal?: () => void;
   timeRange: 24 | 168;
   onToggleTimeRange: (range: 24 | 168) => void;
   tempUnit: TemperatureUnit;
@@ -57,6 +59,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onToggleOfflineMode,
   onOpenDownloadModal,
   onOpenSOSModal,
+  onOpenPrivacyModal,
   timeRange,
   onToggleTimeRange,
   tempUnit,
@@ -70,18 +73,32 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const toolsMenuRef = useRef<HTMLDivElement>(null);
 
-  // Fecha menu de ferramentas ao clicar fora
+  const handleToggleToolsMenu = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    setIsToolsMenuOpen((prev) => !prev);
+  };
+
+  // Fecha menu de ferramentas ao clicar fora (com proteção contra disparo sintético imediato no mobile)
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (toolsMenuRef.current && !toolsMenuRef.current.contains(event.target as Node)) {
+    if (!isToolsMenuOpen) return;
+
+    const handleClickOutside = (event: Event) => {
+      const target = event.target as Node;
+      if (toolsMenuRef.current && !toolsMenuRef.current.contains(target)) {
         setIsToolsMenuOpen(false);
       }
     };
-    if (isToolsMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+
+    // Timeout de 50ms para evitar que o clique/toque de abertura feche o menu imediatamente no mesmo ciclo no mobile
+    const timer = setTimeout(() => {
+      document.addEventListener('pointerdown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside, { passive: true });
+    }, 50);
+
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      clearTimeout(timer);
+      document.removeEventListener('pointerdown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [isToolsMenuOpen]);
 
@@ -418,18 +435,19 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* MENU COMPACTO DE AJUSTES PARA MOBILE / TELAS MENORES (< lg) */}
         <div className="lg:hidden relative z-50" ref={toolsMenuRef}>
           <button
-            onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
+            type="button"
+            onClick={handleToggleToolsMenu}
             aria-label="Abrir menu de ajustes rápidos e configurações de bordo"
             aria-expanded={isToolsMenuOpen}
-            className="p-1.5 border-2 border-black dark:border-white bg-white dark:bg-[#21262d] text-black dark:text-white hover:bg-[#eee] dark:hover:bg-[#30363d] cursor-pointer"
+            className="min-w-[38px] min-h-[38px] p-2 border-2 border-black dark:border-white bg-white dark:bg-[#21262d] text-black dark:text-white hover:bg-[#eee] dark:hover:bg-[#30363d] active:bg-[#ddd] dark:active:bg-[#444] cursor-pointer flex items-center justify-center shadow-xs touch-manipulation select-none"
             title="Ajustes e Ferramentas de Bordo"
           >
-            <SlidersHorizontal className="w-4 h-4" />
+            <SlidersHorizontal className="w-4 h-4 pointer-events-none" />
           </button>
 
           {/* Popover Tático de Ferramentas Rápidas */}
           {isToolsMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-60 sm:w-64 bg-white dark:bg-[#161b22] border-2 border-black dark:border-white p-3 font-mono text-xs shadow-[4px_4px_0px_#000] dark:shadow-[4px_4px_0px_#fff] z-[9999] space-y-2.5 pointer-events-auto">
+            <div className="fixed sm:absolute right-2 sm:right-0 top-14 sm:top-full mt-1 sm:mt-2 w-[calc(100vw-1.25rem)] sm:w-64 max-w-[280px] bg-white dark:bg-[#161b22] border-2 border-black dark:border-white p-3 font-mono text-xs shadow-[4px_4px_0px_#000] dark:shadow-[4px_4px_0px_#fff] z-[99999] space-y-2.5 pointer-events-auto">
               <div className="flex items-center justify-between pb-1.5 border-b border-black/20 dark:border-white/20">
                 <span className="font-bold uppercase text-[10px] text-[#666] dark:text-[#8b949e]">
                   Ajustes Rápidos de Bordo
@@ -515,6 +533,22 @@ export const TopBar: React.FC<TopBarProps> = ({
                   <span>Baixar Mapas</span>
                 </span>
               </button>
+
+              {/* Termos & Privacidade (Google AdSense) */}
+              {onOpenPrivacyModal && (
+                <button
+                  onClick={() => {
+                    onOpenPrivacyModal();
+                    setIsToolsMenuOpen(false);
+                  }}
+                  className="w-full py-1.5 px-2 border border-black dark:border-white bg-[#f8f7f4] dark:bg-[#21262d] text-left font-bold uppercase flex items-center justify-between cursor-pointer hover:bg-[#eee] dark:hover:bg-[#30363d] text-[10px]"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-black dark:text-white" />
+                    <span>Privacidade & Termos</span>
+                  </span>
+                </button>
+              )}
             </div>
           )}
         </div>

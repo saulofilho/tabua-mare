@@ -20,10 +20,10 @@ const SPEED = {
 const DEG_TO_RAD = Math.PI / 180;
 
 /**
- * Calculates theoretical astronomical tide height at a specific timestamp for a given station.
- * Formula: h(t) = Z0 + sum(A_i * cos(omega_i * t - phi_i))
+ * Calculates raw, unrounded theoretical astronomical tide height.
+ * Used internally for accurate continuous derivatives and zero-crossing detection.
  */
-export function calculateTideHeight(
+export function calculateRawTideHeight(
   station: TideStation,
   timestamp: number
 ): number {
@@ -50,8 +50,20 @@ export function calculateTideHeight(
   addConstituent(constituents.o1.amp, constituents.o1.phase, SPEED.o1);
   addConstituent(constituents.m4.amp, constituents.m4.phase, SPEED.m4);
 
+  return height;
+}
+
+/**
+ * Calculates theoretical astronomical tide height at a specific timestamp for a given station.
+ * Formula: h(t) = Z0 + sum(A_i * cos(omega_i * t - phi_i))
+ */
+export function calculateTideHeight(
+  station: TideStation,
+  timestamp: number
+): number {
+  const raw = calculateRawTideHeight(station, timestamp);
   // Return clamped above 0 with 2 decimal precision
-  return Math.max(0, Math.round(height * 100) / 100);
+  return Math.max(0, Math.round(raw * 100) / 100);
 }
 
 /**
@@ -62,8 +74,8 @@ export function calculateTideRateOfChange(
   timestamp: number
 ): number {
   const deltaMs = 5 * 60 * 1000; // 5 minute delta
-  const h1 = calculateTideHeight(station, timestamp - deltaMs);
-  const h2 = calculateTideHeight(station, timestamp + deltaMs);
+  const h1 = calculateRawTideHeight(station, timestamp - deltaMs);
+  const h2 = calculateRawTideHeight(station, timestamp + deltaMs);
   // (h2 - h1) meters in 10 minutes -> cm / hour
   const deltaHeightMeters = h2 - h1;
   const cmPerHour = (deltaHeightMeters * 100) / (10 / 60);
@@ -113,38 +125,48 @@ export function findTideExtremes(
   const stepMs = 3 * 60 * 1000; // 3 minute resolution
   const totalSteps = Math.floor((durationHours * 60 * 60 * 1000) / stepMs);
 
-  let prevHeight = calculateTideHeight(station, startTime);
-  let prevDiff = calculateTideHeight(station, startTime + stepMs) - prevHeight;
+  let prevHeight = calculateRawTideHeight(station, startTime);
+  let prevDiff = calculateRawTideHeight(station, startTime + stepMs) - prevHeight;
+
+  // Intervalo mínimo físico entre extremos sucessivos (~2.5h) para evitar ruído numérico
+  const minIntervalMs = 2.5 * 3600 * 1000;
+  let lastExtremeTime = 0;
 
   for (let i = 1; i < totalSteps; i++) {
     const t = startTime + i * stepMs;
-    const currHeight = calculateTideHeight(station, t);
-    const nextHeight = calculateTideHeight(station, t + stepMs);
+    const currHeight = calculateRawTideHeight(station, t);
+    const nextHeight = calculateRawTideHeight(station, t + stepMs);
     const currDiff = nextHeight - currHeight;
 
-    // Zero-crossing in derivative indicates local minimum or maximum
+    // Zero-crossing na derivada indica mínimo ou máximo local
     if (prevDiff > 0 && currDiff <= 0) {
       // Local Maximum: Preia-mar
-      const date = new Date(t);
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      extremes.push({
-        timestamp: t,
-        timeString: `${hours}:${minutes}`,
-        height: currHeight,
-        type: 'preia-mar',
-      });
+      if (t - lastExtremeTime >= minIntervalMs || lastExtremeTime === 0) {
+        const date = new Date(t);
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        extremes.push({
+          timestamp: t,
+          timeString: `${hours}:${minutes}`,
+          height: Math.max(0, Math.round(currHeight * 100) / 100),
+          type: 'preia-mar',
+        });
+        lastExtremeTime = t;
+      }
     } else if (prevDiff < 0 && currDiff >= 0) {
       // Local Minimum: Baixa-mar
-      const date = new Date(t);
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      extremes.push({
-        timestamp: t,
-        timeString: `${hours}:${minutes}`,
-        height: currHeight,
-        type: 'baixa-mar',
-      });
+      if (t - lastExtremeTime >= minIntervalMs || lastExtremeTime === 0) {
+        const date = new Date(t);
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        extremes.push({
+          timestamp: t,
+          timeString: `${hours}:${minutes}`,
+          height: Math.max(0, Math.round(currHeight * 100) / 100),
+          type: 'baixa-mar',
+        });
+        lastExtremeTime = t;
+      }
     }
 
     prevHeight = currHeight;

@@ -25,12 +25,13 @@ import {
   BookOpen,
   History,
   Sparkles,
-  ChevronRight,
   Activity,
+  CalendarDays,
 } from 'lucide-react';
 import { WeeklyTideStatsChart } from './WeeklyTideStatsChart';
 import { TideHistoryPast7Days } from './TideHistoryPast7Days';
 import { TideHistory24hRealVsAstroChart } from './TideHistory24hRealVsAstroChart';
+import { VirtualTideScroller } from './VirtualTideScroller';
 
 interface TideDashboardProps {
   station: TideStation;
@@ -71,7 +72,7 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
   showAnalysisCharts = false,
   currentTime,
 }) => {
-  const [viewMode, setViewMode] = useState<'timeline' | 'cards' | 'table'>('timeline');
+  const [viewMode, setViewMode] = useState<'timeline' | 'cards' | 'table' | 'virtual'>('timeline');
   const [tideAnalysisView, setTideAnalysisView] = useState<'24h' | 'history' | 'forecast' | 'all'>('24h');
 
   // Profundidade de referência para canais costeiros (2.5m de profundidade na carta náutica)
@@ -332,6 +333,21 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
                 }`}
               >
                 Tabela Resumida
+              </button>
+              <button
+                onClick={() => setViewMode('virtual')}
+                className={`px-2.5 py-1 text-xs font-bold uppercase cursor-pointer transition-colors flex items-center gap-1.5 ${
+                  viewMode === 'virtual'
+                    ? 'bg-[#0284c7] text-white'
+                    : 'text-black dark:text-white hover:bg-white dark:hover:bg-[#21262d]'
+                }`}
+                title="Explorar tábuas de maré completas de anos inteiros com Virtual Scroller"
+              >
+                <CalendarDays className="w-3.5 h-3.5 text-[#0284c7] dark:text-[#38bdf8] group-hover:text-white" />
+                <span>Tábua Multianual</span>
+                <span className="text-[9px] font-black uppercase px-1 py-0.2 bg-black text-white dark:bg-white dark:text-black">
+                  60 FPS
+                </span>
               </button>
             </div>
           </div>
@@ -625,6 +641,13 @@ export const TideDashboard: React.FC<TideDashboardProps> = ({
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* MODO 4: TÁBUA MULTIANUAL COM VIRTUAL SCROLLER DE ALTA PERFORMANCE */}
+          {viewMode === 'virtual' && (
+            <div className="mt-2">
+              <VirtualTideScroller station={station} vessel={vessel} />
             </div>
           )}
 

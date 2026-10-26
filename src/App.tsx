@@ -770,6 +770,8 @@ export default function App() {
           onRequestGPS={handleRequestGPS}
           onResetToNearest={() => handleSelectBeach(nearestInfo.beach)}
           onOpenSearch={() => setIsSearchModalOpen(true)}
+          userCoords={userCoords}
+          onSelectCustomLocation={handleSelectCustomLocation}
         />
 
         {/* Banner Visual de Alertas de Navegação Ativos */}
@@ -963,6 +965,7 @@ export default function App() {
           <TacticalErrorBoundary fallbackTitle="Falha ao carregar Histórico das Marés">
             <TideHistoryView
               station={station}
+              vessel={vessel}
               currentTime={currentTime}
               onBackToTides={() => setActiveTab('tides')}
             />

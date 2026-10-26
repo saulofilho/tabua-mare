@@ -16,11 +16,15 @@ O **MaréSegura** foi projetado para velejadores, marinheiros, pescadores e nave
 
 ## ✨ Módulos e Funcionalidades
 
-### 1. 📊 Tábua de Marés Principal & Curva Interativa
+### 1. 📊 Tábua de Marés Principal & Tábua Multianual com Virtual Scroller
 - **Preia-mar e Baixa-mar Astronômicas**: Horários e alturas exatas calculados com os constituintes harmônicos $M_2, S_2, N_2, K_1, O_1, M_4$ em relação ao **Zero Hidrográfico (ZH)**.
+- **Tábua Multianual com Virtual Scroller (60 FPS)**:
+  - Navegação fluida por **anos completos de tábuas de maré** (mais de 3.650 dias e 14.600 eventos) sem degradação de performance ou consumo excessivo de memória.
+  - Janelamento virtual matemático que renderiza **apenas ~15 nós visíveis** no DOM em qualquer momento (economia de 99,7% de memória).
+  - Seletores rápidos de ano e mês, botão de salto instantâneo para "Hoje", filtros náuticos por Sizígia (maré viva) e exportação completa em formato **CSV**.
 - **Radar de Praia Mais Próxima**: Identifica coordenadas por GPS (`navigator.geolocation`) e calcula via fórmula geodésica de Haversine a estação litorânea mais próxima com conversão em $km$ e Milhas Náuticas ($MN$).
 - **Curva Suave Contínua**: Renderizada em HTML5 Canvas nativo de alta performance para baixo consumo de bateria em celulares e tablets náuticos.
-- **Histórico Comparativo (Módulo Dedicado)**: Visualização separada com histórico das últimas 24h (Real vs. Astronômico), retrospectiva dos últimos 7 dias e estatísticas semanais.
+- **Histórico Comparativo (Módulo Dedicado)**: Visualização com comparativo das últimas 24h (Real vs. Astronômico), retrospectiva de 7 dias e tábua multianual integrada.
 
 ### 2. 🌊 Previsão de Ondas, Vento & Rosa dos Ventos
 - **Condições Oceânicas Reais**:

@@ -1,22 +1,25 @@
 import React, { useState } from 'react';
-import { TideStation } from '../types/tide';
-import { ArrowLeft, Activity, History, Sparkles, Compass } from 'lucide-react';
+import { TideStation, VesselProfile } from '../types/tide';
+import { ArrowLeft, Activity, History, Sparkles, Compass, CalendarDays } from 'lucide-react';
 import { TideHistory24hRealVsAstroChart } from './TideHistory24hRealVsAstroChart';
 import { TideHistoryPast7Days } from './TideHistoryPast7Days';
 import { WeeklyTideStatsChart } from './WeeklyTideStatsChart';
+import { VirtualTideScroller } from './VirtualTideScroller';
 
 interface TideHistoryViewProps {
   station: TideStation;
+  vessel?: VesselProfile;
   currentTime?: number;
   onBackToTides: () => void;
 }
 
 export const TideHistoryView: React.FC<TideHistoryViewProps> = ({
   station,
+  vessel,
   currentTime,
   onBackToTides,
 }) => {
-  const [tideAnalysisView, setTideAnalysisView] = useState<'24h' | 'history' | 'forecast' | 'all'>('24h');
+  const [tideAnalysisView, setTideAnalysisView] = useState<'24h' | 'history' | 'forecast' | 'multiannual' | 'all'>('multiannual');
 
   return (
     <div className="w-full font-mono bg-[#f8f7f4] dark:bg-[#0d1117] transition-colors pb-10">
@@ -56,11 +59,27 @@ export const TideHistoryView: React.FC<TideHistoryViewProps> = ({
         {/* Seletor de Análise */}
         <div className="mt-4 flex flex-wrap items-center gap-2" role="group" aria-label="Visualização de análise de maré">
           <button
+            onClick={() => setTideAnalysisView('multiannual')}
+            aria-pressed={tideAnalysisView === 'multiannual'}
+            className={`px-3.5 py-1.5 text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer transition-colors flex items-center gap-1.5 shadow-[2px_2px_0px_#000] ${
+              tideAnalysisView === 'multiannual'
+                ? 'bg-[#0284c7] text-white border-[#0284c7]'
+                : 'bg-white text-black dark:bg-[#0d1117] dark:text-white hover:bg-[#eee]'
+            }`}
+          >
+            <CalendarDays className="w-3.5 h-3.5" />
+            <span>Tábua Multianual (Virtual Scroller)</span>
+            <span className="text-[9px] font-black uppercase px-1 py-0.2 bg-black text-white dark:bg-white dark:text-black">
+              10 Anos
+            </span>
+          </button>
+
+          <button
             onClick={() => setTideAnalysisView('24h')}
             aria-pressed={tideAnalysisView === '24h'}
             className={`px-3.5 py-1.5 text-xs font-bold uppercase border-2 border-black dark:border-white cursor-pointer transition-colors flex items-center gap-1.5 shadow-[2px_2px_0px_#000] ${
               tideAnalysisView === '24h'
-                ? 'bg-[#0284c7] text-white border-[#0284c7]'
+                ? 'bg-black text-white dark:bg-white dark:text-black'
                 : 'bg-white text-black dark:bg-[#0d1117] dark:text-white hover:bg-[#eee]'
             }`}
           >
@@ -107,6 +126,13 @@ export const TideHistoryView: React.FC<TideHistoryViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* SEÇÃO PRINCIPAL: TÁBUA MULTIANUAL COM VIRTUAL SCROLLER */}
+      {(tideAnalysisView === 'multiannual' || tideAnalysisView === 'all') && (
+        <div className="border-b-2 border-black dark:border-[#30363d] bg-white dark:bg-[#0d1117] p-4 sm:p-6" id="multiannual-virtual-tide-section">
+          <VirtualTideScroller station={station} vessel={vessel} />
+        </div>
+      )}
 
       {/* SEÇÃO 1: GRÁFICO RECHARTS DE LINHA DAS ÚLTIMAS 24H: REAL VS. ASTRONÔMICA */}
       {(tideAnalysisView === '24h' || tideAnalysisView === 'all') && (

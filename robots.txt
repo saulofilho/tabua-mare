@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Sitemap oficial MaréSegura
+Sitemap: /sitemap.xml

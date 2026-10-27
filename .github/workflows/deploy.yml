@@ -47,16 +47,7 @@ jobs:
           enablement: true
         continue-on-error: true
 
-      # FIX 2: Deploy universal para branch 'gh-pages'.
-      # Funciona 100% de forma imediata em qualquer repositório GitHub sem depender da API de Pages estar pré-configurada!
-      - name: Deploy to gh-pages branch
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          force_orphan: true
-
-      # FIX 3: Upload e deploy nativo do GitHub Actions (para repositórios com Pages configurado via Actions)
+      # Deploy nativo do GitHub Actions (sem criar ou alterar branches como gh-pages)
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
         with:
